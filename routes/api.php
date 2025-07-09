@@ -3,6 +3,9 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\UniversityController;
+use App\Http\Controllers\Api\AnnouncementController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -141,6 +144,33 @@ Route::prefix('v1')->group(function () {
     // University management (admin routes) - temporarily public for testing
     Route::apiResource('universities', UniversityController::class)->except(['index', 'show']);
     Route::post('/universities/{university}/toggle-status', [UniversityController::class, 'toggleStatus']);
+    
+    // Announcements (public access)
+    Route::get('/announcements', [AnnouncementController::class, 'index']);
+    Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show']);
+    
+    // Announcement management - temporarily public for testing (route alternative)
+    Route::post('/announcements-create', [AnnouncementController::class, 'store']);
+    Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+    Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+    Route::post('/announcements/{announcement}/status', [AnnouncementController::class, 'updateStatus']);
+
+    // Users management - temporarily public for testing
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+    Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::get('/users-stats', [UserController::class, 'getStats']);
+
+    // Dashboard statistics
+    Route::get('/dashboard/overview', [DashboardController::class, 'getOverview']);
+    Route::get('/dashboard/recent-activity', [DashboardController::class, 'getRecentActivity']);
+    Route::get('/dashboard/announcements-by-category', [DashboardController::class, 'getAnnouncementsByCategory']);
+    Route::get('/dashboard/announcements-by-type', [DashboardController::class, 'getAnnouncementsByType']);
+    Route::get('/dashboard/monthly-growth', [DashboardController::class, 'getMonthlyGrowth']);
+    Route::get('/dashboard/top-universities', [DashboardController::class, 'getTopUniversities']);
 });
 
 // Routes protégées (avec authentification)

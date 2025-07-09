@@ -23,16 +23,16 @@ class Category extends Model
         'sort_order' => 'integer'
     ];
 
-    // Commented out until Announcement model is created
-    // public function announcements()
-    // {
-    //     return $this->hasMany(Announcement::class);
-    // }
+    // Relations
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class);
+    }
 
-    // public function getActiveAnnouncementsCountAttribute()
-    // {
-    //     return $this->announcements()->where('status', 'active')->count();
-    // }
+    public function getActiveAnnouncementsCountAttribute()
+    {
+        return $this->announcements()->where('status', 'active')->count();
+    }
 
     public function scopeActive($query)
     {

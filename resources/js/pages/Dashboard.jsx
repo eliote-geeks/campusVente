@@ -35,11 +35,11 @@ const Dashboard = () => {
     });
     
     const [userForm, setUserForm] = useState({
-        name: '', email: '', university: '', is_student: true, is_active: true
+        name: '', email: '', password: '', phone: '', university: '', study_level: '', field: '', bio: '', location: '', is_student: true, verified: true
     });
     
     const [announcementForm, setAnnouncementForm] = useState({
-        title: '', description: '', category: '', price: '', type: 'sell', status: 'active'
+        title: '', description: '', category_id: '', price: '', type: 'sell', status: 'pending', location: '', is_urgent: false
     });
     
     const [universityForm, setUniversityForm] = useState({
@@ -98,9 +98,13 @@ const Dashboard = () => {
             setAnnouncements(mockData.announcements);
             setUniversities(mockData.universities);
             
-            // Charger les catégories et universités depuis l'API
+            // Charger toutes les données depuis l'API
             await fetchCategories();
             await fetchUniversities();
+            await fetchAnnouncements();
+            await fetchUsers();
+            await fetchStats();
+            await fetchRecentActivity();
             
             setLoading(false);
         };
@@ -130,6 +134,58 @@ const Dashboard = () => {
             }
         } catch (error) {
             console.error('Error fetching universities:', error);
+        }
+    };
+
+    const fetchAnnouncements = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements');
+            const data = await response.json();
+            if (data.success) {
+                setAnnouncements(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/users');
+            const data = await response.json();
+            if (data.success) {
+                setUsers(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
+
+    const fetchStats = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/dashboard/overview');
+            const data = await response.json();
+            if (data.success) {
+                setStats(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+            // Fallback to mock data if API fails
+            setStats(mockData.stats);
+        }
+    };
+
+    const fetchRecentActivity = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/dashboard/recent-activity');
+            const data = await response.json();
+            if (data.success) {
+                setRecentActivity(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching recent activity:', error);
+            // Fallback to mock data if API fails
+            setRecentActivity(mockData.recentActivity);
         }
     };
 
@@ -273,12 +329,9 @@ const Dashboard = () => {
     };
 
     // Fonctions de gestion des utilisateurs
-    const handleUserFormChange = (field, value) => {
-        setUserForm(prev => ({ ...prev, [field]: value }));
-    };
 
     const resetUserForm = () => {
-        setUserForm({ name: '', email: '', university: '', is_student: true, is_active: true });
+        setUserForm({ name: '', email: '', password: '', phone: '', university: '', study_level: '', field: '', bio: '', location: '', is_student: true, verified: true });
         setSelectedUser(null);
     };
 
@@ -288,9 +341,15 @@ const Dashboard = () => {
             setUserForm({
                 name: user.name,
                 email: user.email,
-                university: user.university,
+                password: '', // Don't pre-fill password
+                phone: user.phone || '',
+                university: user.university || '',
+                study_level: user.study_level || '',
+                field: user.field || '',
+                bio: user.bio || '',
+                location: user.location || '',
                 is_student: user.is_student,
-                is_active: user.is_active
+                verified: user.verified
             });
         } else {
             resetUserForm();
@@ -298,10 +357,129 @@ const Dashboard = () => {
         setShowUserModal(true);
     };
 
-    const handleDeleteUser = (userId) => {
+    const handleCreateUser = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(userForm)
+            });
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la création de l\'utilisateur');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchUsers();
+                resetUserForm();
+                setShowUserModal(false);
+                alert('Utilisateur créé avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors de la création de l\'utilisateur');
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            alert('Erreur lors de la création de l\'utilisateur');
+        }
+    };
+
+    const handleUpdateUser = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${selectedUser.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(userForm)
+            });
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la mise à jour de l\'utilisateur');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchUsers();
+                resetUserForm();
+                setShowUserModal(false);
+                alert('Utilisateur mis à jour avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors de la mise à jour de l\'utilisateur');
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+            alert('Erreur lors de la mise à jour de l\'utilisateur');
+        }
+    };
+
+    const handleDeleteUser = async (userId) => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
-        setUsers(prev => prev.filter(user => user.id !== userId));
-        alert('Utilisateur supprimé avec succès !');
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la suppression de l\'utilisateur');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchUsers();
+                alert('Utilisateur supprimé avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors de la suppression de l\'utilisateur');
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Erreur lors de la suppression de l\'utilisateur');
+        }
+    };
+
+    const handleUserFormChange = (field, value) => {
+        setUserForm(prev => ({ ...prev, [field]: value }));
     };
 
     // Fonctions de gestion des annonces
@@ -310,7 +488,7 @@ const Dashboard = () => {
     };
 
     const resetAnnouncementForm = () => {
-        setAnnouncementForm({ title: '', description: '', category: '', price: '', type: 'sell', status: 'active' });
+        setAnnouncementForm({ title: '', description: '', category_id: '', price: '', type: 'sell', status: 'pending', location: '', is_urgent: false });
         setSelectedAnnouncement(null);
     };
 
@@ -320,10 +498,12 @@ const Dashboard = () => {
             setAnnouncementForm({
                 title: announcement.title,
                 description: announcement.description,
-                category: announcement.category,
+                category_id: announcement.category_id,
                 price: announcement.price,
                 type: announcement.type,
-                status: announcement.status
+                status: announcement.status,
+                location: announcement.location,
+                is_urgent: announcement.is_urgent
             });
         } else {
             resetAnnouncementForm();
@@ -331,10 +511,172 @@ const Dashboard = () => {
         setShowAnnouncementModal(true);
     };
 
-    const handleDeleteAnnouncement = (announcementId) => {
+    const handleCreateAnnouncement = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements-create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(announcementForm)
+            });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la création de l\'annonce');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchAnnouncements();
+                resetAnnouncementForm();
+                setShowAnnouncementModal(false);
+                alert('Annonce créée avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors de la création de l\'annonce');
+            }
+        } catch (error) {
+            console.error('Error creating announcement:', error);
+            alert('Erreur lors de la création de l\'annonce');
+        }
+    };
+
+    const handleUpdateAnnouncement = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${selectedAnnouncement.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(announcementForm)
+            });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la mise à jour de l\'annonce');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchAnnouncements();
+                resetAnnouncementForm();
+                setShowAnnouncementModal(false);
+                alert('Annonce mise à jour avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors de la mise à jour de l\'annonce');
+            }
+        } catch (error) {
+            console.error('Error updating announcement:', error);
+            alert('Erreur lors de la mise à jour de l\'annonce');
+        }
+    };
+
+    const handleDeleteAnnouncement = async (announcementId) => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ?')) return;
-        setAnnouncements(prev => prev.filter(ann => ann.id !== announcementId));
-        alert('Annonce supprimée avec succès !');
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la suppression de l\'annonce');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchAnnouncements();
+                alert('Annonce supprimée avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors de la suppression de l\'annonce');
+            }
+        } catch (error) {
+            console.error('Error deleting announcement:', error);
+            alert('Erreur lors de la suppression de l\'annonce');
+        }
+    };
+
+    const handleUpdateAnnouncementStatus = async (announcementId, newStatus) => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors du changement de statut');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchAnnouncements();
+                alert(data.message || 'Statut mis à jour avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors du changement de statut');
+            }
+        } catch (error) {
+            console.error('Error updating announcement status:', error);
+            alert('Erreur lors du changement de statut');
+        }
     };
 
     // Fonctions de gestion des universités
@@ -898,7 +1240,7 @@ const Dashboard = () => {
                                         {users.filter(user => 
                                             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            user.university.toLowerCase().includes(searchTerm.toLowerCase())
+                                            (user.university && user.university.toLowerCase().includes(searchTerm.toLowerCase()))
                                         ).map(user => (
                                             <tr key={user.id}>
                                                 <td>
@@ -912,18 +1254,22 @@ const Dashboard = () => {
                                                     </div>
                                                 </td>
                                                 <td>{user.email}</td>
-                                                <td>{user.university}</td>
+                                                <td>{user.university || 'N/A'}</td>
                                                 <td>
                                                     <Badge bg={user.is_student ? 'info' : 'warning'} pill>
                                                         {user.is_student ? 'Étudiant' : 'Professionnel'}
                                                     </Badge>
                                                 </td>
                                                 <td>
-                                                    <Badge bg={user.is_active ? 'success' : 'danger'} pill>
-                                                        {user.is_active ? 'Actif' : 'Inactif'}
+                                                    <Badge bg={user.verified ? 'success' : 'danger'} pill>
+                                                        {user.verified ? 'Vérifié' : 'En attente'}
                                                     </Badge>
                                                 </td>
-                                                <td className="text-muted">{user.created_at}</td>
+                                                <td className="text-muted">
+                                                    {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                                                    <br />
+                                                    <small>{user.location || 'Non spécifié'}</small>
+                                                </td>
                                                 <td>
                                                     <div className="d-flex gap-2">
                                                         <Button 
@@ -1008,8 +1354,8 @@ const Dashboard = () => {
                                     <tbody>
                                         {announcements.filter(ann => 
                                             ann.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            ann.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            ann.author.toLowerCase().includes(searchTerm.toLowerCase())
+                                            (ann.category && ann.category.name && ann.category.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                            (ann.user && ann.user.name && ann.user.name.toLowerCase().includes(searchTerm.toLowerCase()))
                                         ).map(announcement => (
                                             <tr key={announcement.id}>
                                                 <td>
@@ -1019,21 +1365,36 @@ const Dashboard = () => {
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <Badge bg="secondary" pill>{announcement.category}</Badge>
+                                                    <Badge bg="secondary" pill>
+                                                        {announcement.category ? announcement.category.icon + ' ' + announcement.category.name : 'N/A'}
+                                                    </Badge>
                                                 </td>
                                                 <td>
                                                     <Badge bg={getTypeColor(announcement.type)} pill>
-                                                        {announcement.type}
+                                                        {announcement.type === 'sell' ? '🛒 Vendre' : 
+                                                         announcement.type === 'buy' ? '🔍 Acheter' : 
+                                                         announcement.type === 'service' ? '🛠️ Service' : 
+                                                         '🔄 Échange'}
                                                     </Badge>
                                                 </td>
-                                                <td className="fw-bold text-success">{announcement.price}€</td>
-                                                <td>{announcement.author}</td>
+                                                <td className="fw-bold text-success">
+                                                    {announcement.price} FCFA
+                                                    {announcement.is_urgent && <Badge bg="warning" className="ms-2">URGENT</Badge>}
+                                                </td>
+                                                <td>{announcement.user ? announcement.user.name : 'N/A'}</td>
                                                 <td>
                                                     <Badge bg={getStatusColor(announcement.status)} pill>
-                                                        {announcement.status}
+                                                        {announcement.status === 'pending' ? '⏳ En attente' : 
+                                                         announcement.status === 'active' ? '✅ Active' : 
+                                                         announcement.status === 'sold' ? '💰 Vendue' : 
+                                                         '❌ Inactive'}
                                                     </Badge>
                                                 </td>
-                                                <td className="text-muted">{announcement.created_at}</td>
+                                                <td className="text-muted">
+                                                    {new Date(announcement.created_at).toLocaleDateString('fr-FR')}
+                                                    <br />
+                                                    <small>📍 {announcement.location}</small>
+                                                </td>
                                                 <td>
                                                     <div className="d-flex gap-2">
                                                         <Button 
@@ -1465,37 +1826,41 @@ const Dashboard = () => {
                                 />
                             </Form.Group>
                             <Row>
-                                <Col md={4}>
+                                <Col md={6}>
                                     <Form.Group className="mb-3">
                                         <Form.Label>Catégorie</Form.Label>
                                         <Form.Select
-                                            value={announcementForm.category}
-                                            onChange={(e) => handleAnnouncementFormChange('category', e.target.value)}
+                                            value={announcementForm.category_id}
+                                            onChange={(e) => handleAnnouncementFormChange('category_id', e.target.value)}
                                         >
                                             <option value="">Choisir une catégorie</option>
-                                            <option value="Électronique">Électronique</option>
-                                            <option value="Services">Services</option>
-                                            <option value="Sport">Sport</option>
+                                            {categories.map(category => (
+                                                <option key={category.id} value={category.id}>
+                                                    {category.icon} {category.name}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-                                <Col md={4}>
+                                <Col md={6}>
                                     <Form.Group className="mb-3">
                                         <Form.Label>Type</Form.Label>
                                         <Form.Select
                                             value={announcementForm.type}
                                             onChange={(e) => handleAnnouncementFormChange('type', e.target.value)}
                                         >
-                                            <option value="sell">Vente</option>
-                                            <option value="buy">Achat</option>
-                                            <option value="service">Service</option>
-                                            <option value="housing">Logement</option>
+                                            <option value="sell">🛒 Vendre</option>
+                                            <option value="buy">🔍 Acheter</option>
+                                            <option value="service">🛠️ Service</option>
+                                            <option value="exchange">🔄 Échange</option>
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-                                <Col md={4}>
+                            </Row>
+                            <Row>
+                                <Col md={6}>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Prix (€)</Form.Label>
+                                        <Form.Label>Prix (FCFA)</Form.Label>
                                         <Form.Control
                                             type="number"
                                             placeholder="0"
@@ -1504,25 +1869,54 @@ const Dashboard = () => {
                                         />
                                     </Form.Group>
                                 </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Localisation</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Yaoundé, Douala..."
+                                            value={announcementForm.location}
+                                            onChange={(e) => handleAnnouncementFormChange('location', e.target.value)}
+                                        />
+                                    </Form.Group>
+                                </Col>
                             </Row>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Statut</Form.Label>
-                                <Form.Select
-                                    value={announcementForm.status}
-                                    onChange={(e) => handleAnnouncementFormChange('status', e.target.value)}
-                                >
-                                    <option value="active">Active</option>
-                                    <option value="pending">En attente</option>
-                                    <option value="inactive">Inactive</option>
-                                </Form.Select>
-                            </Form.Group>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Statut</Form.Label>
+                                        <Form.Select
+                                            value={announcementForm.status}
+                                            onChange={(e) => handleAnnouncementFormChange('status', e.target.value)}
+                                        >
+                                            <option value="pending">⏳ En attente</option>
+                                            <option value="active">✅ Active</option>
+                                            <option value="sold">💰 Vendue</option>
+                                            <option value="inactive">❌ Inactive</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="🚨 Annonce urgente"
+                                            checked={announcementForm.is_urgent}
+                                            onChange={(e) => handleAnnouncementFormChange('is_urgent', e.target.checked)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
                         </Form>
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={() => setShowAnnouncementModal(false)}>
                             Annuler
                         </Button>
-                        <Button variant="primary">
+                        <Button 
+                            variant="primary" 
+                            onClick={selectedAnnouncement ? handleUpdateAnnouncement : handleCreateAnnouncement}
+                        >
                             {selectedAnnouncement ? 'Mettre à jour' : 'Créer'}
                         </Button>
                     </Modal.Footer>
@@ -1651,6 +2045,172 @@ const Dashboard = () => {
                             onClick={selectedUniversity ? handleUpdateUniversity : handleCreateUniversity}
                         >
                             {selectedUniversity ? 'Mettre à jour' : 'Créer'}
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+
+                {/* Modal pour les utilisateurs */}
+                <Modal show={showUserModal} onHide={() => setShowUserModal(false)} size="lg">
+                    <Modal.Header closeButton>
+                        <Modal.Title>
+                            {selectedUser ? '✏️ Modifier l\'utilisateur' : '➕ Ajouter un utilisateur'}
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Nom complet *</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Marie Dupont"
+                                            value={userForm.name}
+                                            onChange={(e) => handleUserFormChange('name', e.target.value)}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Email *</Form.Label>
+                                        <Form.Control
+                                            type="email"
+                                            placeholder="marie.dupont@example.com"
+                                            value={userForm.email}
+                                            onChange={(e) => handleUserFormChange('email', e.target.value)}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>{selectedUser ? 'Nouveau mot de passe' : 'Mot de passe *'}</Form.Label>
+                                        <Form.Control
+                                            type="password"
+                                            placeholder="Mot de passe"
+                                            value={userForm.password}
+                                            onChange={(e) => handleUserFormChange('password', e.target.value)}
+                                            required={!selectedUser}
+                                        />
+                                        {selectedUser && (
+                                            <Form.Text className="text-muted">
+                                                Laissez vide pour conserver le mot de passe actuel
+                                            </Form.Text>
+                                        )}
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Téléphone</Form.Label>
+                                        <Form.Control
+                                            type="tel"
+                                            placeholder="Ex: +237 123 456 789"
+                                            value={userForm.phone}
+                                            onChange={(e) => handleUserFormChange('phone', e.target.value)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Université</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Université de Yaoundé I"
+                                            value={userForm.university}
+                                            onChange={(e) => handleUserFormChange('university', e.target.value)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Localisation</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Yaoundé, Cameroun"
+                                            value={userForm.location}
+                                            onChange={(e) => handleUserFormChange('location', e.target.value)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Niveau d'études</Form.Label>
+                                        <Form.Select
+                                            value={userForm.study_level}
+                                            onChange={(e) => handleUserFormChange('study_level', e.target.value)}
+                                        >
+                                            <option value="">Sélectionner un niveau</option>
+                                            <option value="license">Licence</option>
+                                            <option value="master">Master</option>
+                                            <option value="doctorat">Doctorat</option>
+                                            <option value="autre">Autre</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Domaine d'études</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Informatique, Médecine..."
+                                            value={userForm.field}
+                                            onChange={(e) => handleUserFormChange('field', e.target.value)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Biographie</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={3}
+                                    placeholder="Décrivez-vous brièvement..."
+                                    value={userForm.bio}
+                                    onChange={(e) => handleUserFormChange('bio', e.target.value)}
+                                />
+                            </Form.Group>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Check
+                                            type="switch"
+                                            id="user-is-student"
+                                            label="👨‍🎓 Étudiant"
+                                            checked={userForm.is_student}
+                                            onChange={(e) => handleUserFormChange('is_student', e.target.checked)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Check
+                                            type="switch"
+                                            id="user-verified"
+                                            label="✅ Compte vérifié"
+                                            checked={userForm.verified}
+                                            onChange={(e) => handleUserFormChange('verified', e.target.checked)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowUserModal(false)}>
+                            Annuler
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            onClick={selectedUser ? handleUpdateUser : handleCreateUser}
+                        >
+                            {selectedUser ? 'Mettre à jour' : 'Créer'}
                         </Button>
                     </Modal.Footer>
                 </Modal>

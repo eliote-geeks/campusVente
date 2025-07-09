@@ -39,6 +39,9 @@ const Navigation = () => {
                         <Nav.Link as={Link} to="/announcements" className="fw-semibold text-dark px-3">
                             📢 Annonces
                         </Nav.Link>
+                        <Nav.Link as={Link} to="/create-announcement" className="fw-semibold text-primary px-3">
+                            ➕ Créer une annonce
+                        </Nav.Link>
                         <Nav.Link as={Link} to="/students" className="fw-semibold text-dark px-3">
                             👥 Étudiants
                         </Nav.Link>

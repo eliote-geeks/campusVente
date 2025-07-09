@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Home from './pages/Home.jsx';
 import Profile from './pages/Profile.jsx';
 import Announcements from './pages/Announcements.jsx';
+import CreateAnnouncement from './pages/CreateAnnouncement.jsx';
 import Meetings from './pages/Meetings.jsx';
 import University from './pages/University.jsx';
 import Students from './pages/Students.jsx';
@@ -102,6 +103,14 @@ const AppContent = () => {
                             element={
                                 <PrivateRoute>
                                     <Announcements />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/create-announcement" 
+                            element={
+                                <PrivateRoute>
+                                    <CreateAnnouncement />
                                 </PrivateRoute>
                             } 
                         />
