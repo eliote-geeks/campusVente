@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('city');
             $table->string('region');
             $table->string('type')->default('public'); // public, private
-            $table->year('founded')->nullable();
+            $table->integer('founded')->nullable();
             $table->text('description')->nullable();
             $table->string('website')->nullable();
             $table->boolean('active')->default(true);

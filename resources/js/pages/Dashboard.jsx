@@ -111,7 +111,7 @@ const Dashboard = () => {
     // Fonctions API
     const fetchCategories = async () => {
         try {
-            const response = await fetch('/api/v1/categories');
+            const response = await fetch('http://127.0.0.1:8000/api/v1/categories');
             const data = await response.json();
             if (data.success) {
                 setCategories(data.data);
@@ -123,7 +123,7 @@ const Dashboard = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await fetch('/api/v1/universities');
+            const response = await fetch('http://127.0.0.1:8000/api/v1/universities');
             const data = await response.json();
             if (data.success) {
                 setUniversities(data.data);
@@ -184,11 +184,11 @@ const Dashboard = () => {
 
     const handleCreateCategory = async () => {
         try {
-            const response = await fetch('/api/v1/categories', {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/categories', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(categoryForm)
             });
@@ -208,11 +208,11 @@ const Dashboard = () => {
 
     const handleUpdateCategory = async () => {
         try {
-            const response = await fetch(`/api/v1/categories/${selectedCategory.id}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/categories/${selectedCategory.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(categoryForm)
             });
@@ -234,10 +234,10 @@ const Dashboard = () => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) return;
 
         try {
-            const response = await fetch(`/api/v1/categories/${categoryId}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/categories/${categoryId}`, {
                 method: 'DELETE',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 }
             });
 
@@ -254,10 +254,10 @@ const Dashboard = () => {
 
     const handleToggleCategoryStatus = async (categoryId) => {
         try {
-            const response = await fetch(`/api/v1/categories/${categoryId}/toggle-status`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/categories/${categoryId}/toggle-status`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 }
             });
 
@@ -369,14 +369,31 @@ const Dashboard = () => {
 
     const handleCreateUniversity = async () => {
         try {
-            const response = await fetch('/api/v1/universities', {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/universities', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(universityForm)
             });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la création de l\'université');
+                return;
+            }
 
             const data = await response.json();
             if (data.success) {
@@ -385,7 +402,7 @@ const Dashboard = () => {
                 setShowUniversityModal(false);
                 alert('Université créée avec succès !');
             } else {
-                alert('Erreur lors de la création de l\'université');
+                alert(data.message || 'Erreur lors de la création de l\'université');
             }
         } catch (error) {
             console.error('Error creating university:', error);
@@ -395,14 +412,31 @@ const Dashboard = () => {
 
     const handleUpdateUniversity = async () => {
         try {
-            const response = await fetch(`/api/v1/universities/${selectedUniversity.id}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/universities/${selectedUniversity.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(universityForm)
             });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la mise à jour de l\'université');
+                return;
+            }
 
             const data = await response.json();
             if (data.success) {
@@ -411,7 +445,7 @@ const Dashboard = () => {
                 setShowUniversityModal(false);
                 alert('Université mise à jour avec succès !');
             } else {
-                alert('Erreur lors de la mise à jour de l\'université');
+                alert(data.message || 'Erreur lors de la mise à jour de l\'université');
             }
         } catch (error) {
             console.error('Error updating university:', error);
@@ -423,12 +457,29 @@ const Dashboard = () => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette université ?')) return;
 
         try {
-            const response = await fetch(`/api/v1/universities/${universityId}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/universities/${universityId}`, {
                 method: 'DELETE',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 }
             });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors de la suppression de l\'université');
+                return;
+            }
 
             const data = await response.json();
             if (data.success) {
@@ -445,17 +496,36 @@ const Dashboard = () => {
 
     const handleToggleUniversityStatus = async (universityId) => {
         try {
-            const response = await fetch(`/api/v1/universities/${universityId}/toggle-status`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/universities/${universityId}/toggle-status`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    'Accept': 'application/json'
                 }
             });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Erreur serveur: La réponse n\'est pas au format JSON');
+                return;
+            }
+
+            // Check if response is successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API error:', errorData);
+                alert(errorData.message || 'Erreur lors du changement de statut');
+                return;
+            }
 
             const data = await response.json();
             if (data.success) {
                 await fetchUniversities();
                 alert(data.message || 'Statut mis à jour avec succès !');
+            } else {
+                alert(data.message || 'Erreur lors du changement de statut');
             }
         } catch (error) {
             console.error('Error toggling university status:', error);
