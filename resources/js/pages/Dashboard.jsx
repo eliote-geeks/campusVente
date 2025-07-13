@@ -16,6 +16,7 @@ const Dashboard = () => {
     const [users, setUsers] = useState([]);
     const [announcements, setAnnouncements] = useState([]);
     const [universities, setUniversities] = useState([]);
+    const [meetings, setMeetings] = useState([]);
     const [recentActivity, setRecentActivity] = useState([]);
     
     // States pour les modals
@@ -23,12 +24,14 @@ const Dashboard = () => {
     const [showUserModal, setShowUserModal] = useState(false);
     const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
     const [showUniversityModal, setShowUniversityModal] = useState(false);
+    const [showMeetingModal, setShowMeetingModal] = useState(false);
     
     // States pour les formulaires
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
     const [selectedUniversity, setSelectedUniversity] = useState(null);
+    const [selectedMeeting, setSelectedMeeting] = useState(null);
     
     const [categoryForm, setCategoryForm] = useState({
         name: '', icon: '', description: '', is_active: true, sort_order: 0
@@ -44,6 +47,10 @@ const Dashboard = () => {
     
     const [universityForm, setUniversityForm] = useState({
         name: '', acronym: '', city: '', region: '', type: 'public', founded: '', website: '', description: '', active: true
+    });
+    
+    const [meetingForm, setMeetingForm] = useState({
+        title: '', description: '', type: 'study_group', meeting_date: '', location: '', address: '', max_participants: '', price: '', is_free: true, is_online: false, online_link: '', requirements: '', contact_info: '', category_id: ''
     });
 
     // Données simulées
@@ -103,6 +110,7 @@ const Dashboard = () => {
             await fetchUniversities();
             await fetchAnnouncements();
             await fetchUsers();
+            await fetchMeetings();
             await fetchStats();
             await fetchRecentActivity();
             
@@ -172,6 +180,18 @@ const Dashboard = () => {
             console.error('Error fetching stats:', error);
             // Fallback to mock data if API fails
             setStats(mockData.stats);
+        }
+    };
+
+    const fetchMeetings = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings');
+            const data = await response.json();
+            if (data.success) {
+                setMeetings(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching meetings:', error);
         }
     };
 
@@ -1544,6 +1564,263 @@ const Dashboard = () => {
         </Container>
     );
 
+    // Rendu de la gestion des rencontres
+    const renderMeetingsManagement = () => {
+        // Filtrer les rencontres
+        const filteredMeetings = meetings.filter(meeting => 
+            meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            meeting.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            meeting.location.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        // Pagination
+        const indexOfLastItem = currentPage * itemsPerPage;
+        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+        const currentItems = filteredMeetings.slice(indexOfFirstItem, indexOfLastItem);
+        const totalPages = Math.ceil(filteredMeetings.length / itemsPerPage);
+
+        return (
+            <Container fluid>
+                <Row>
+                    <Col>
+                        <Card className="shadow-sm border-0">
+                            <Card.Header className="bg-light">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h5 className="mb-0 fw-bold">🤝 Gestion des rencontres</h5>
+                                    <Button variant="primary" onClick={() => setShowMeetingModal(true)}>
+                                        ➕ Ajouter une rencontre
+                                    </Button>
+                                </div>
+                            </Card.Header>
+                            <Card.Body>
+                                <Row className="mb-3">
+                                    <Col md={6}>
+                                        <InputGroup>
+                                            <InputGroup.Text>🔍</InputGroup.Text>
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Rechercher une rencontre..."
+                                                value={searchTerm}
+                                                onChange={(e) => {
+                                                    setSearchTerm(e.target.value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            />
+                                        </InputGroup>
+                                    </Col>
+                                    <Col md={6}>
+                                        <div className="text-end">
+                                            <small className="text-muted">
+                                                {filteredMeetings.length} rencontre(s) trouvée(s)
+                                            </small>
+                                        </div>
+                                    </Col>
+                                </Row>
+                                <div className="table-responsive">
+                                    <Table hover className="table-striped">
+                                        <thead className="table-dark">
+                                            <tr>
+                                                <th>Rencontre</th>
+                                                <th>Organisateur</th>
+                                                <th>Date</th>
+                                                <th>Lieu</th>
+                                                <th>Participants</th>
+                                                <th>Statut</th>
+                                                <th style={{ width: '120px' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {currentItems.map(meeting => (
+                                                <tr key={meeting.id}>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            <span className="me-2 fs-4">{meeting.type_icon || '🤝'}</span>
+                                                            <div>
+                                                                <div className="fw-bold">{meeting.title}</div>
+                                                                <small className="text-muted">{meeting.type_label}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            <div className="me-2">
+                                                                <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }}>
+                                                                    <span className="text-white fw-bold">{meeting.user?.name?.charAt(0) || 'U'}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="fw-semibold">{meeting.user?.name || 'Utilisateur inconnu'}</div>
+                                                                <small className="text-muted">{meeting.user?.university || 'N/A'}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="fw-semibold">{meeting.formatted_date || 'Date non définie'}</div>
+                                                        <small className="text-muted">{meeting.time_until_meeting || ''}</small>
+                                                    </td>
+                                                    <td>
+                                                        <div style={{ maxWidth: '200px' }}>
+                                                            <div className="fw-semibold">{meeting.location}</div>
+                                                            {meeting.address && <small className="text-muted">{meeting.address}</small>}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            <Badge bg="info" pill className="me-2">{meeting.participants_count || 0}</Badge>
+                                                            {meeting.max_participants && (
+                                                                <small className="text-muted">/ {meeting.max_participants}</small>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <Badge bg={meeting.status_color || 'secondary'} pill>
+                                                            {meeting.status_label || meeting.status}
+                                                        </Badge>
+                                                    </td>
+                                                    <td>
+                                                        <div className="d-flex gap-1">
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="outline-primary"
+                                                                onClick={() => setSelectedMeeting(meeting)}
+                                                                title="Voir détails"
+                                                            >
+                                                                👁️
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="outline-warning"
+                                                                onClick={() => {
+                                                                    setSelectedMeeting(meeting);
+                                                                    setMeetingForm({
+                                                                        title: meeting.title,
+                                                                        description: meeting.description,
+                                                                        type: meeting.type,
+                                                                        meeting_date: meeting.meeting_date,
+                                                                        location: meeting.location,
+                                                                        address: meeting.address,
+                                                                        max_participants: meeting.max_participants,
+                                                                        price: meeting.price,
+                                                                        is_free: meeting.is_free,
+                                                                        is_online: meeting.is_online,
+                                                                        online_link: meeting.online_link,
+                                                                        requirements: meeting.requirements,
+                                                                        contact_info: meeting.contact_info,
+                                                                        category_id: meeting.category_id
+                                                                    });
+                                                                    setShowMeetingModal(true);
+                                                                }}
+                                                                title="Modifier"
+                                                            >
+                                                                ✏️
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="outline-danger"
+                                                                onClick={() => handleDeleteMeeting(meeting.id)}
+                                                                title="Supprimer"
+                                                            >
+                                                                🗑️
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </Table>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            </Container>
+        );
+    };
+
+    // Fonctions de gestion des rencontres
+    const handleMeetingFormChange = (field, value) => {
+        setMeetingForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const resetMeetingForm = () => {
+        setMeetingForm({
+            title: '', description: '', type: 'study_group', meeting_date: '', location: '', address: '', 
+            max_participants: '', price: '', is_free: true, is_online: false, online_link: '', 
+            requirements: '', contact_info: '', category_id: ''
+        });
+        setSelectedMeeting(null);
+    };
+
+    const handleCreateMeeting = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(meetingForm)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchMeetings();
+                resetMeetingForm();
+                setShowMeetingModal(false);
+                alert('Rencontre créée avec succès !');
+            }
+        } catch (error) {
+            console.error('Error creating meeting:', error);
+            alert('Erreur lors de la création de la rencontre');
+        }
+    };
+
+    const handleUpdateMeeting = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/meetings/${selectedMeeting.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(meetingForm)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchMeetings();
+                resetMeetingForm();
+                setShowMeetingModal(false);
+                alert('Rencontre mise à jour avec succès !');
+            }
+        } catch (error) {
+            console.error('Error updating meeting:', error);
+            alert('Erreur lors de la mise à jour de la rencontre');
+        }
+    };
+
+    const handleDeleteMeeting = async (meetingId) => {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cette rencontre ?')) return;
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/meetings/${meetingId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchMeetings();
+                alert('Rencontre supprimée avec succès !');
+            }
+        } catch (error) {
+            console.error('Error deleting meeting:', error);
+            alert('Erreur lors de la suppression de la rencontre');
+        }
+    };
+
     return (
         <div className="content-with-navbar">
             <Container fluid>
@@ -1627,6 +1904,18 @@ const Dashboard = () => {
                                     🎓 Universités
                                 </Nav.Link>
                             </Nav.Item>
+                            <Nav.Item>
+                                <Nav.Link 
+                                    active={activeTab === 'meetings'} 
+                                    onClick={() => {
+                                        setActiveTab('meetings');
+                                        setCurrentPage(1);
+                                        setSearchTerm('');
+                                    }}
+                                >
+                                    🤝 Rencontres
+                                </Nav.Link>
+                            </Nav.Item>
                         </Nav>
                     </Col>
                 </Row>
@@ -1637,6 +1926,7 @@ const Dashboard = () => {
                 {activeTab === 'announcements' && renderAnnouncementsManagement()}
                 {activeTab === 'categories' && renderCategoriesManagement()}
                 {activeTab === 'universities' && renderUniversitiesManagement()}
+                {activeTab === 'meetings' && renderMeetingsManagement()}
 
                 {/* Modal pour les catégories */}
                 <Modal show={showCategoryModal} onHide={() => setShowCategoryModal(false)} size="lg">
@@ -2211,6 +2501,197 @@ const Dashboard = () => {
                             onClick={selectedUser ? handleUpdateUser : handleCreateUser}
                         >
                             {selectedUser ? 'Mettre à jour' : 'Créer'}
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+
+                {/* Modal pour les rencontres */}
+                <Modal show={showMeetingModal} onHide={() => setShowMeetingModal(false)} size="lg">
+                    <Modal.Header closeButton>
+                        <Modal.Title>
+                            {selectedMeeting ? '✏️ Modifier la rencontre' : '➕ Ajouter une rencontre'}
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form>
+                            <Row>
+                                <Col md={8}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Titre *</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Groupe d'étude Mathématiques"
+                                            value={meetingForm.title}
+                                            onChange={(e) => handleMeetingFormChange('title', e.target.value)}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={4}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Type</Form.Label>
+                                        <Form.Select
+                                            value={meetingForm.type}
+                                            onChange={(e) => handleMeetingFormChange('type', e.target.value)}
+                                        >
+                                            <option value="study_group">📚 Groupe d'étude</option>
+                                            <option value="networking">🤝 Networking</option>
+                                            <option value="party">🎉 Soirée/Fête</option>
+                                            <option value="sport">⚽ Sport</option>
+                                            <option value="cultural">🎭 Culturel</option>
+                                            <option value="conference">🎤 Conférence</option>
+                                            <option value="workshop">🔧 Atelier</option>
+                                            <option value="other">📅 Autre</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Description *</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={3}
+                                    placeholder="Décrivez votre rencontre..."
+                                    value={meetingForm.description}
+                                    onChange={(e) => handleMeetingFormChange('description', e.target.value)}
+                                    required
+                                />
+                            </Form.Group>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Date et heure *</Form.Label>
+                                        <Form.Control
+                                            type="datetime-local"
+                                            value={meetingForm.meeting_date}
+                                            onChange={(e) => handleMeetingFormChange('meeting_date', e.target.value)}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Catégorie</Form.Label>
+                                        <Form.Select
+                                            value={meetingForm.category_id}
+                                            onChange={(e) => handleMeetingFormChange('category_id', e.target.value)}
+                                        >
+                                            <option value="">Choisir une catégorie</option>
+                                            {categories.map(category => (
+                                                <option key={category.id} value={category.id}>
+                                                    {category.icon} {category.name}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Lieu *</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Bibliothèque universitaire"
+                                            value={meetingForm.location}
+                                            onChange={(e) => handleMeetingFormChange('location', e.target.value)}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Adresse complète</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Ex: Campus principal, Salle 205"
+                                            value={meetingForm.address}
+                                            onChange={(e) => handleMeetingFormChange('address', e.target.value)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Participants maximum</Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            placeholder="Ex: 20 (laissez vide pour illimité)"
+                                            value={meetingForm.max_participants}
+                                            onChange={(e) => handleMeetingFormChange('max_participants', e.target.value)}
+                                            min="1"
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Prix (FCFA)</Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            placeholder="0 pour gratuit"
+                                            value={meetingForm.price}
+                                            onChange={(e) => handleMeetingFormChange('price', e.target.value)}
+                                            min="0"
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Prérequis/Exigences</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={2}
+                                    placeholder="Ex: Niveau L2 minimum, carte d'étudiant requise..."
+                                    value={meetingForm.requirements}
+                                    onChange={(e) => handleMeetingFormChange('requirements', e.target.value)}
+                                />
+                            </Form.Group>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Informations de contact</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    placeholder="Ex: WhatsApp: +237 123 456 789"
+                                    value={meetingForm.contact_info}
+                                    onChange={(e) => handleMeetingFormChange('contact_info', e.target.value)}
+                                />
+                            </Form.Group>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="💻 Rencontre en ligne"
+                                            checked={meetingForm.is_online}
+                                            onChange={(e) => handleMeetingFormChange('is_online', e.target.checked)}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    {meetingForm.is_online && (
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Lien de la rencontre</Form.Label>
+                                            <Form.Control
+                                                type="url"
+                                                placeholder="https://zoom.us/j/..."
+                                                value={meetingForm.online_link}
+                                                onChange={(e) => handleMeetingFormChange('online_link', e.target.value)}
+                                            />
+                                        </Form.Group>
+                                    )}
+                                </Col>
+                            </Row>
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowMeetingModal(false)}>
+                            Annuler
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            onClick={selectedMeeting ? handleUpdateMeeting : handleCreateMeeting}
+                        >
+                            {selectedMeeting ? 'Mettre à jour' : 'Créer'}
                         </Button>
                     </Modal.Footer>
                 </Modal>

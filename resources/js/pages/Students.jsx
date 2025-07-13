@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, InputGroup, Badge, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, InputGroup, Badge, Modal, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
@@ -12,214 +12,71 @@ const Students = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterUniversity, setFilterUniversity] = useState('all');
     const [filterField, setFilterField] = useState('all');
-    const [sortBy, setSortBy] = useState('name');
+    const [sortBy, setSortBy] = useState('recommendation');
+    const [showRatingModal, setShowRatingModal] = useState(false);
+    const [studentToRate, setStudentToRate] = useState(null);
+    const [ratingData, setRatingData] = useState({ rating: 5, comment: '', transaction_type: 'general' });
+    const [featuredStudents, setFeaturedStudents] = useState([]);
 
-    // Données simulées d'étudiants avec leurs annonces
-    const sampleStudents = [
-        {
-            id: 1,
-            firstName: 'Marie',
-            lastName: 'Dupont',
-            email: 'marie.dupont@sorbonne.fr',
-            phone: '+33612345678',
-            university: 'Sorbonne Université',
-            studyLevel: 'Master 2',
-            field: 'Informatique',
-            bio: 'Étudiante en informatique passionnée par le développement web. Toujours prête à aider et partager mes connaissances !',
-            avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face',
-            rating: 4.8,
-            responseTime: '2h',
-            joinedAt: '2023-09-15',
-            isVerified: true,
-            announcements: [
-                {
-                    id: 1,
-                    title: 'MacBook Pro 2021',
-                    price: 1200,
-                    category: 'Électronique',
-                    type: 'sell',
-                    image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-15T10:30:00Z',
-                    views: 156,
-                    likes: 12
-                },
-                {
-                    id: 2,
-                    title: 'Cours de programmation Python',
-                    price: 30,
-                    category: 'Services',
-                    type: 'service',
-                    image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-10T14:20:00Z',
-                    views: 89,
-                    likes: 15
-                }
-            ]
-        },
-        {
-            id: 2,
-            firstName: 'Paul',
-            lastName: 'Martin',
-            email: 'paul.martin@univ-paris.fr',
-            phone: '+33687654321',
-            university: 'Université de Paris',
-            studyLevel: 'Licence 3',
-            field: 'Économie',
-            bio: 'Étudiant en économie, je cherche souvent des colocations et propose des services de relecture de mémoires.',
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-            rating: 4.6,
-            responseTime: '1h',
-            joinedAt: '2023-10-01',
-            isVerified: true,
-            announcements: [
-                {
-                    id: 3,
-                    title: 'Colocation proche campus',
-                    price: 600,
-                    category: 'Logement',
-                    type: 'housing',
-                    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-14T15:45:00Z',
-                    views: 234,
-                    likes: 18
-                },
-                {
-                    id: 4,
-                    title: 'Relecture de mémoires',
-                    price: 20,
-                    category: 'Services',
-                    type: 'service',
-                    image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-08T09:15:00Z',
-                    views: 67,
-                    likes: 8
-                }
-            ]
-        },
-        {
-            id: 3,
-            firstName: 'Julie',
-            lastName: 'Bernard',
-            email: 'julie.bernard@ens.fr',
-            phone: '+33634567890',
-            university: 'École Normale Supérieure',
-            studyLevel: 'Doctorat',
-            field: 'Philosophie',
-            bio: 'Doctorante en philosophie, je vends parfois mes affaires et organise des groupes de discussion.',
-            avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
-            rating: 4.7,
-            responseTime: '1h',
-            joinedAt: '2023-08-20',
-            isVerified: true,
-            announcements: [
-                {
-                    id: 5,
-                    title: 'iPhone 14 Pro',
-                    price: 950,
-                    category: 'Électronique',
-                    type: 'sell',
-                    image: 'https://images.unsplash.com/photo-1592286638595-0df8be7d99ba?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-11T14:20:00Z',
-                    views: 345,
-                    likes: 28
-                }
-            ]
-        },
-        {
-            id: 4,
-            firstName: 'Alexandre',
-            lastName: 'Petit',
-            email: 'alex.petit@sciencespo.fr',
-            phone: '+33676543210',
-            university: 'Sciences Po Paris',
-            studyLevel: 'Master 1',
-            field: 'Sciences Politiques',
-            bio: 'Étudiant en sciences politiques, passionné par le droit et l\'histoire. Vends mes anciens manuels.',
-            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-            rating: 4.3,
-            responseTime: '3h',
-            joinedAt: '2023-11-05',
-            isVerified: true,
-            announcements: [
-                {
-                    id: 6,
-                    title: 'Livres de droit constitutionnel',
-                    price: 120,
-                    category: 'Livres',
-                    type: 'sell',
-                    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-10T11:15:00Z',
-                    views: 67,
-                    likes: 8
-                }
-            ]
-        },
-        {
-            id: 5,
-            firstName: 'Emma',
-            lastName: 'Roux',
-            email: 'emma.roux@sorbonne.fr',
-            phone: '+33698765432',
-            university: 'Sorbonne Université',
-            studyLevel: 'Master 1',
-            field: 'Médecine',
-            bio: 'Étudiante en médecine, toujours en mouvement. J\'organise souvent des événements étudiants.',
-            avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face',
-            rating: 4.9,
-            responseTime: '30min',
-            joinedAt: '2023-09-01',
-            isVerified: true,
-            announcements: [
-                {
-                    id: 7,
-                    title: 'Soirée étudiante médecine',
-                    price: 0,
-                    category: 'Événements',
-                    type: 'event',
-                    image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-12T18:00:00Z',
-                    views: 456,
-                    likes: 89
-                }
-            ]
-        },
-        {
-            id: 6,
-            firstName: 'Lucas',
-            lastName: 'Moreau',
-            email: 'lucas.moreau@univ-lyon.fr',
-            phone: '+33612987654',
-            university: 'Université Lyon 1',
-            studyLevel: 'Licence 2',
-            field: 'Mathématiques',
-            bio: 'Étudiant en mathématiques, j\'aime partager mes connaissances et aider les autres étudiants.',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-            rating: 4.4,
-            responseTime: '2h',
-            joinedAt: '2023-10-15',
-            isVerified: false,
-            announcements: [
-                {
-                    id: 8,
-                    title: 'Cours de mathématiques',
-                    price: 25,
-                    category: 'Services',
-                    type: 'service',
-                    image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=200&h=150&fit=crop',
-                    createdAt: '2024-01-13T09:20:00Z',
-                    views: 89,
-                    likes: 25
-                }
-            ]
+    // Fetch students from API
+    const fetchStudents = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('http://127.0.0.1:8000/api/v1/users?is_student=true');
+            const data = await response.json();
+            
+            if (data.success) {
+                // Transform API data to match component expectations
+                const transformedStudents = data.data.map(user => ({
+                    id: user.id,
+                    firstName: user.name.split(' ')[0] || user.name,
+                    lastName: user.name.split(' ').slice(1).join(' ') || '',
+                    email: user.email,
+                    phone: user.phone || '+33000000000',
+                    university: user.university || 'Université non spécifiée',
+                    studyLevel: user.study_level || 'Non spécifié',
+                    field: user.field || 'Non spécifié',
+                    bio: user.bio || 'Aucune biographie disponible.',
+                    avatar: user.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face',
+                    rating: user.rating || 0,
+                    totalRatings: user.total_ratings || 0,
+                    recommendationScore: user.recommendation_score || 0,
+                    responseTime: '2h', // Default response time
+                    joinedAt: user.created_at,
+                    isVerified: user.verified || false,
+                    announcements: user.featured_announcements || [], // Articles phares
+                    announcementsCount: user.announcements_count || 0
+                }));
+                
+                setStudents(transformedStudents);
+                setFilteredStudents(transformedStudents);
+            } else {
+                console.error('Failed to fetch students:', data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching students:', error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    // Fetch featured students (recommended)
+    const fetchFeaturedStudents = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/users/recommended?limit=6');
+            const data = await response.json();
+            
+            if (data.success) {
+                setFeaturedStudents(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching featured students:', error);
+        }
+    };
 
     useEffect(() => {
-        setTimeout(() => {
-            setStudents(sampleStudents);
-            setFilteredStudents(sampleStudents);
-            setLoading(false);
-        }, 1000);
+        fetchStudents();
+        fetchFeaturedStudents();
     }, []);
 
     useEffect(() => {
@@ -257,10 +114,13 @@ const Students = () => {
                 filtered.sort((a, b) => b.rating - a.rating);
                 break;
             case 'announcements':
-                filtered.sort((a, b) => b.announcements.length - a.announcements.length);
+                filtered.sort((a, b) => b.announcementsCount - a.announcementsCount);
                 break;
             case 'newest':
                 filtered.sort((a, b) => new Date(b.joinedAt) - new Date(a.joinedAt));
+                break;
+            case 'recommendation':
+                filtered.sort((a, b) => b.recommendationScore - a.recommendationScore);
                 break;
         }
 
@@ -270,6 +130,46 @@ const Students = () => {
     const handleWhatsAppContact = (student) => {
         const message = encodeURIComponent(`Salut ${student.firstName}! Je viens de voir ton profil sur CampusVente et j'aimerais te contacter. 👋`);
         window.open(`https://wa.me/${student.phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    };
+
+    const handleRateStudent = (student) => {
+        setStudentToRate(student);
+        setShowRatingModal(true);
+    };
+
+    const submitRating = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${studentToRate.id}/rate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(ratingData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Mettre à jour la note de l'étudiant localement
+                setStudents(prev => 
+                    prev.map(student => 
+                        student.id === studentToRate.id 
+                            ? { ...student, rating: data.data.new_average, totalRatings: data.data.total_ratings }
+                            : student
+                    )
+                );
+                
+                setShowRatingModal(false);
+                setRatingData({ rating: 5, comment: '', transaction_type: 'general' });
+                alert('Note ajoutée avec succès !');
+            } else {
+                alert('Erreur : ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erreur lors de la notation:', error);
+            alert('Erreur lors de l\'ajout de la note');
+        }
     };
 
     const getUniqueUniversities = () => {
@@ -328,13 +228,10 @@ const Students = () => {
                             <div>
                                 <h2 className="fw-bold mb-1">👥 Étudiants Campus</h2>
                                 <p className="text-muted mb-0">
-                                    {filteredStudents.length} étudiant{filteredStudents.length > 1 ? 's' : ''} • {students.reduce((acc, s) => acc + s.announcements.length, 0)} annonces
+                                    {filteredStudents.length} étudiant{filteredStudents.length > 1 ? 's' : ''} trouvé{filteredStudents.length > 1 ? 's' : ''}
                                 </p>
                             </div>
                             <div className="d-flex gap-2">
-                                <Button as={Link} to="/dashboard" className="btn-modern" variant="outline-primary">
-                                    📊 Dashboard
-                                </Button>
                                 <Button as={Link} to="/announcements" className="btn-modern btn-gradient">
                                     📢 Voir les annonces
                                 </Button>
@@ -374,14 +271,60 @@ const Students = () => {
                     </Col>
                     <Col md={2}>
                         <Form.Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                            <option value="recommendation">Recommandés</option>
+                            <option value="rating">Note</option>
                             <option value="name">Nom</option>
                             <option value="university">Université</option>
-                            <option value="rating">Note</option>
                             <option value="announcements">Nb. annonces</option>
                             <option value="newest">Plus récents</option>
                         </Form.Select>
                     </Col>
                 </Row>
+
+                {/* Section étudiants recommandés */}
+                {featuredStudents.length > 0 && (
+                    <>
+                        <Row className="mb-4">
+                            <Col>
+                                <h4 className="fw-bold text-primary mb-3">⭐ Étudiants Recommandés</h4>
+                                <Row className="g-3">
+                                    {featuredStudents.slice(0, 3).map(student => (
+                                        <Col key={student.id} md={4}>
+                                            <Card className="card-modern border-primary">
+                                                <Card.Body className="text-center p-3">
+                                                    <img 
+                                                        src={student.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=60&h=60&fit=crop&crop=face'} 
+                                                        alt={student.name}
+                                                        className="rounded-circle mb-2"
+                                                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                                                    />
+                                                    <h6 className="fw-bold mb-1">{student.name}</h6>
+                                                    <div className="d-flex justify-content-center align-items-center gap-2 mb-2">
+                                                        <span className="text-warning fw-bold">{parseFloat(student.rating || 0).toFixed(1)}⭐</span>
+                                                        <small className="text-muted">({student.total_ratings || 0} avis)</small>
+                                                    </div>
+                                                    <small className="text-muted">{student.university || 'Université'}</small>
+                                                    <div className="mt-2">
+                                                        <Button size="sm" variant="outline-primary" 
+                                                                onClick={() => setSelectedStudent({
+                                                                    ...student,
+                                                                    firstName: student.name.split(' ')[0],
+                                                                    lastName: student.name.split(' ').slice(1).join(' '),
+                                                                    announcements: student.featured_announcements || []
+                                                                })}>
+                                                            Voir profil
+                                                        </Button>
+                                                    </div>
+                                                </Card.Body>
+                                            </Card>
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </Col>
+                        </Row>
+                        <hr className="my-4" />
+                    </>
+                )}
 
                 {/* Grille des étudiants */}
                 {filteredStudents.length === 0 ? (
@@ -431,16 +374,16 @@ const Students = () => {
                                         {/* Statistiques */}
                                         <div className="d-flex justify-content-between align-items-center mb-3 text-center">
                                             <div>
-                                                <div className="fw-bold text-warning">{student.rating}⭐</div>
-                                                <small className="text-muted">Note</small>
+                                                <div className="fw-bold text-warning">{parseFloat(student.rating).toFixed(1)}⭐</div>
+                                                <small className="text-muted">Note ({student.totalRatings})</small>
                                             </div>
                                             <div>
-                                                <div className="fw-bold text-primary">{student.announcements.length}</div>
+                                                <div className="fw-bold text-primary">{student.announcementsCount}</div>
                                                 <small className="text-muted">Annonces</small>
                                             </div>
                                             <div>
-                                                <div className="fw-bold text-success">{student.responseTime}</div>
-                                                <small className="text-muted">Répond en</small>
+                                                <div className="fw-bold text-info">{student.recommendationScore}</div>
+                                                <small className="text-muted">Score</small>
                                             </div>
                                         </div>
 
@@ -467,7 +410,7 @@ const Students = () => {
                                                                     {announcement.price > 0 && (
                                                                         <div className="position-absolute bottom-0 end-0 m-1">
                                                                             <Badge bg="success" style={{ fontSize: '8px' }}>
-                                                                                {announcement.price}€
+                                                                                {announcement.price.toLocaleString('fr-FR')} FCFA
                                                                             </Badge>
                                                                         </div>
                                                                     )}
@@ -494,7 +437,7 @@ const Students = () => {
                                         )}
 
                                         {/* Actions */}
-                                        <div className="d-flex gap-2">
+                                        <div className="d-flex gap-1 mb-2">
                                             <Button 
                                                 size="sm" 
                                                 className="btn-modern flex-fill"
@@ -502,7 +445,7 @@ const Students = () => {
                                                     background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
                                                     border: 'none',
                                                     color: 'white',
-                                                    fontSize: '12px'
+                                                    fontSize: '11px'
                                                 }}
                                                 onClick={() => handleWhatsAppContact(student)}
                                             >
@@ -511,12 +454,22 @@ const Students = () => {
                                             <Button 
                                                 size="sm" 
                                                 variant="outline-primary"
-                                                className="btn-modern"
+                                                className="btn-modern flex-fill"
+                                                style={{ fontSize: '11px' }}
                                                 onClick={() => setSelectedStudent(student)}
                                             >
-                                                👁️ Voir profil
+                                                👁️ Profil
                                             </Button>
                                         </div>
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline-warning"
+                                            className="btn-modern w-100"
+                                            style={{ fontSize: '11px' }}
+                                            onClick={() => handleRateStudent(student)}
+                                        >
+                                            ⭐ Noter cet étudiant
+                                        </Button>
                                     </Card.Body>
                                 </Card>
                             </Col>
@@ -594,7 +547,7 @@ const Students = () => {
                                                             {announcement.price > 0 && (
                                                                 <div className="position-absolute bottom-0 end-0 m-2">
                                                                     <Badge bg="success">
-                                                                        {announcement.price}€
+                                                                        {announcement.price.toLocaleString('fr-FR')} FCFA
                                                                     </Badge>
                                                                 </div>
                                                             )}
@@ -632,6 +585,70 @@ const Students = () => {
                             </Button>
                             <Button variant="secondary" onClick={() => setSelectedStudent(null)}>
                                 Fermer
+                            </Button>
+                        </Modal.Footer>
+                    </Modal>
+                )}
+
+                {/* Modal de notation */}
+                {showRatingModal && studentToRate && (
+                    <Modal show={showRatingModal} onHide={() => setShowRatingModal(false)}>
+                        <Modal.Header closeButton>
+                            <Modal.Title>Noter {studentToRate.firstName} {studentToRate.lastName}</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <Form>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Note (1 à 5 étoiles)</Form.Label>
+                                    <div className="d-flex gap-2 align-items-center">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <Button
+                                                key={star}
+                                                variant={star <= ratingData.rating ? "warning" : "outline-warning"}
+                                                size="sm"
+                                                onClick={() => setRatingData({...ratingData, rating: star})}
+                                            >
+                                                ⭐
+                                            </Button>
+                                        ))}
+                                        <span className="ms-2">{ratingData.rating}/5</span>
+                                    </div>
+                                </Form.Group>
+                                
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Type de transaction</Form.Label>
+                                    <Form.Select 
+                                        value={ratingData.transaction_type} 
+                                        onChange={(e) => setRatingData({...ratingData, transaction_type: e.target.value})}
+                                    >
+                                        <option value="general">Évaluation générale</option>
+                                        <option value="announcement">Annonce/Achat</option>
+                                        <option value="service">Service rendu</option>
+                                    </Form.Select>
+                                </Form.Group>
+                                
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Commentaire (optionnel)</Form.Label>
+                                    <Form.Control
+                                        as="textarea"
+                                        rows={3}
+                                        placeholder="Partagez votre expérience avec cet étudiant..."
+                                        value={ratingData.comment}
+                                        onChange={(e) => setRatingData({...ratingData, comment: e.target.value})}
+                                        maxLength={500}
+                                    />
+                                    <Form.Text className="text-muted">
+                                        {ratingData.comment.length}/500 caractères
+                                    </Form.Text>
+                                </Form.Group>
+                            </Form>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={() => setShowRatingModal(false)}>
+                                Annuler
+                            </Button>
+                            <Button variant="warning" onClick={submitRating}>
+                                ⭐ Publier la note
                             </Button>
                         </Modal.Footer>
                     </Modal>

@@ -1,16 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, Badge, Dropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const Navigation = () => {
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, logout, updateUser } = useAuth();
     const navigate = useNavigate();
+    const [userProfile, setUserProfile] = useState(null);
+    const [notificationCount, setNotificationCount] = useState(0);
+
+    // Récupérer les vraies informations utilisateur depuis la BD
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            if (isAuthenticated && user?.id) {
+                try {
+                    const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setUserProfile(data.data);
+                        // Mettre à jour le contexte avec les vraies données
+                        updateUser({
+                            ...user,
+                            ...data.data,
+                            firstName: data.data.name?.split(' ')[0] || user.firstName,
+                            lastName: data.data.name?.split(' ').slice(1).join(' ') || user.lastName
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la récupération du profil:', error);
+                }
+            }
+        };
+        
+        fetchUserProfile();
+    }, [isAuthenticated, user?.id, updateUser]);
 
     const handleLogout = async () => {
         await logout();
         navigate('/login');
     };
+
+    const currentUser = userProfile || user;
 
     return (
         <Navbar expand="lg" className="navbar-modern fixed-top">
@@ -45,9 +81,9 @@ const Navigation = () => {
                         <Nav.Link as={Link} to="/students" className="fw-semibold text-dark px-3">
                             👥 Étudiants
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/meetings" className="fw-semibold text-dark px-3">
+                        {/* <Nav.Link as={Link} to="/meetings" className="fw-semibold text-dark px-3">
                             🤝 Rencontres
-                        </Nav.Link>
+                        </Nav.Link> */}
                     </Nav>
                     
                     <Nav>
@@ -59,30 +95,84 @@ const Navigation = () => {
                                     className="btn-modern d-flex align-items-center"
                                 >
                                     <img 
-                                        src={user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
+                                        src={currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
                                         alt="Profile" 
                                         className="rounded-circle me-2"
-                                        style={{width: '32px', height: '32px'}}
+                                        style={{width: '32px', height: '32px', objectFit: 'cover'}}
                                     />
-                                    {user.firstName}
-                                    {user.isStudent && (
-                                        <Badge className="student-badge ms-2">
+                                    <div className="d-flex flex-column align-items-start me-2">
+                                        <span className="fw-semibold">
+                                            {currentUser?.name?.split(' ')[0] || currentUser?.firstName || 'Utilisateur'}
+                                        </span>
+                                        {currentUser?.rating && (
+                                            <small className="text-warning">
+                                                ⭐ {parseFloat(currentUser.rating).toFixed(1)}
+                                            </small>
+                                        )}
+                                    </div>
+                                    {(currentUser?.is_student || currentUser?.isStudent) && (
+                                        <Badge bg="primary" className="ms-1" style={{fontSize: '10px'}}>
                                             Étudiant
+                                        </Badge>
+                                    )}
+                                    {notificationCount > 0 && (
+                                        <Badge bg="danger" className="ms-1" style={{fontSize: '9px'}}>
+                                            {notificationCount}
                                         </Badge>
                                     )}
                                 </Dropdown.Toggle>
 
                                 <Dropdown.Menu>
+                                    <Dropdown.Header>
+                                        <div className="text-center">
+                                            <img 
+                                                src={currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face'}
+                                                alt="Profile" 
+                                                className="rounded-circle mb-2"
+                                                style={{width: '50px', height: '50px', objectFit: 'cover'}}
+                                            />
+                                            <div className="fw-bold">{currentUser?.name || 'Utilisateur'}</div>
+                                            <small className="text-muted">{currentUser?.email}</small>
+                                            {currentUser?.university && (
+                                                <div><small className="text-primary">{currentUser.university}</small></div>
+                                            )}
+                                        </div>
+                                    </Dropdown.Header>
+                                    <Dropdown.Divider />
                                     <Dropdown.Item as={Link} to="/profile">
                                         👤 Mon Profil
                                     </Dropdown.Item>
                                     <Dropdown.Item as={Link} to="/my-announcements">
                                         📝 Mes Annonces
+                                        {currentUser?.announcements_count > 0 && (
+                                            <Badge bg="secondary" className="ms-2" style={{fontSize: '10px'}}>
+                                                {currentUser.announcements_count}
+                                            </Badge>
+                                        )}
                                     </Dropdown.Item>
+                                    <Dropdown.Item as={Link} to="/favorites">
+                                        ❤️ Mes Favoris
+                                    </Dropdown.Item>
+                                    <Dropdown.Item as={Link} to="/my-ratings">
+                                        ⭐ Mes Notes
+                                        {currentUser?.total_ratings > 0 && (
+                                            <Badge bg="warning" className="ms-2" style={{fontSize: '10px'}}>
+                                                {currentUser.total_ratings}
+                                            </Badge>
+                                        )}
+                                    </Dropdown.Item>
+                                    <Dropdown.Item as={Link} to="/notifications">
+                                        🔔 Notifications
+                                        {notificationCount > 0 && (
+                                            <Badge bg="danger" className="ms-2" style={{fontSize: '10px'}}>
+                                                {notificationCount}
+                                            </Badge>
+                                        )}
+                                    </Dropdown.Item>
+                                    <Dropdown.Divider />
                                     <Dropdown.Item as={Link} to="/settings">
                                         ⚙️ Paramètres
                                     </Dropdown.Item>
-                                    <Dropdown.Divider />
                                     <Dropdown.Item onClick={handleLogout}>
                                         🚪 Déconnexion
                                     </Dropdown.Item>

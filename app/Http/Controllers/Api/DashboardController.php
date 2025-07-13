@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Announcement;
+use App\Models\AnnouncementLike;
+use App\Models\AnnouncementView;
 use App\Models\Category;
 use App\Models\University;
+use App\Models\Meeting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,6 +23,7 @@ class DashboardController extends Controller
         $stats = [
             'totalUsers' => User::count(),
             'totalAnnouncements' => Announcement::count(),
+            'totalMeetings' => Meeting::count(),
             'totalCategories' => Category::where('is_active', true)->count(),
             'totalUniversities' => University::where('active', true)->count(),
             
@@ -27,16 +31,30 @@ class DashboardController extends Controller
             'pendingAnnouncements' => Announcement::where('status', 'pending')->count(),
             'activeAnnouncements' => Announcement::where('status', 'active')->count(),
             'soldAnnouncements' => Announcement::where('status', 'sold')->count(),
+            'upcomingMeetings' => Meeting::where('status', 'upcoming')->count(),
+            'ongoingMeetings' => Meeting::where('status', 'ongoing')->count(),
+            'completedMeetings' => Meeting::where('status', 'completed')->count(),
             
             'todaySignups' => User::whereDate('created_at', today())->count(),
             'todayPosts' => Announcement::whereDate('created_at', today())->count(),
+            'todayMeetings' => Meeting::whereDate('created_at', today())->count(),
             'thisWeekSignups' => User::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
             'thisWeekPosts' => Announcement::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'thisWeekMeetings' => Meeting::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
             
             'studentsCount' => User::where('is_student', true)->count(),
             'professionalsCount' => User::where('is_student', false)->count(),
             'onlineUsers' => User::where('last_seen', '>=', now()->subMinutes(5))->count(),
-            'urgentAnnouncements' => Announcement::where('is_urgent', true)->where('status', 'active')->count()
+            'urgentAnnouncements' => Announcement::where('is_urgent', true)->where('status', 'active')->count(),
+            'pendingApprovals' => Announcement::where('status', 'pending')->count() + Meeting::where('status', 'pending')->count(),
+            
+            // Nouvelles statistiques d'engagement
+            'totalLikes' => AnnouncementLike::count(),
+            'totalViews' => AnnouncementView::count(),
+            'todayLikes' => AnnouncementLike::whereDate('created_at', today())->count(),
+            'todayViews' => AnnouncementView::whereDate('created_at', today())->count(),
+            'avgLikesPerAnnouncement' => round(AnnouncementLike::count() / max(Announcement::count(), 1), 2),
+            'avgViewsPerAnnouncement' => round(AnnouncementView::count() / max(Announcement::count(), 1), 2)
         ];
 
         return response()->json([
@@ -88,6 +106,26 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Recent meetings
+        $recentMeetings = Meeting::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($meeting) {
+                return [
+                    'id' => 'meeting_' . $meeting->id,
+                    'type' => 'meeting',
+                    'action' => 'Nouvelle rencontre organisée',
+                    'user' => $meeting->user->name ?? 'Utilisateur inconnu',
+                    'details' => $meeting->title,
+                    'time' => $meeting->created_at->diffForHumans(),
+                    'status' => $meeting->status === 'upcoming' ? 'warning' : 
+                               ($meeting->status === 'ongoing' ? 'success' : 
+                               ($meeting->status === 'completed' ? 'info' : 'secondary')),
+                    'created_at' => $meeting->created_at
+                ];
+            });
+
         // Recent categories
         $recentCategories = Category::orderBy('created_at', 'desc')
             ->limit(3)
@@ -108,6 +146,7 @@ class DashboardController extends Controller
         // Merge and sort activities
         $activities = $recentUsers
             ->concat($recentAnnouncements)
+            ->concat($recentMeetings)
             ->concat($recentCategories)
             ->sortByDesc('created_at')
             ->take(10)
@@ -215,6 +254,9 @@ class DashboardController extends Controller
                     ->count(),
                 'announcements' => Announcement::whereYear('created_at', $date->year)
                     ->whereMonth('created_at', $date->month)
+                    ->count(),
+                'meetings' => Meeting::whereYear('created_at', $date->year)
+                    ->whereMonth('created_at', $date->month)
                     ->count()
             ];
         }
@@ -256,6 +298,107 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => $universities
+        ]);
+    }
+
+    /**
+     * Get meetings statistics by type
+     */
+    public function getMeetingsByType()
+    {
+        $stats = Meeting::select('type', DB::raw('count(*) as count'))
+            ->where('status', '!=', 'cancelled')
+            ->groupBy('type')
+            ->get()
+            ->map(function ($item) {
+                $typeLabels = [
+                    'study_group' => 'Groupe d\'étude',
+                    'networking' => 'Networking',
+                    'party' => 'Soirée/Fête',
+                    'sport' => 'Sport',
+                    'cultural' => 'Culturel',
+                    'conference' => 'Conférence',
+                    'workshop' => 'Atelier',
+                    'other' => 'Autre'
+                ];
+                
+                $typeIcons = [
+                    'study_group' => '📚',
+                    'networking' => '🤝',
+                    'party' => '🎉',
+                    'sport' => '⚽',
+                    'cultural' => '🎭',
+                    'conference' => '🎤',
+                    'workshop' => '🔧',
+                    'other' => '📅'
+                ];
+
+                return [
+                    'type' => $item->type,
+                    'label' => $typeLabels[$item->type] ?? $item->type,
+                    'icon' => $typeIcons[$item->type] ?? '📅',
+                    'count' => $item->count,
+                    'percentage' => 0 // Will be calculated below
+                ];
+            });
+
+        $total = $stats->sum('count');
+        if ($total > 0) {
+            $stats = $stats->map(function ($item) use ($total) {
+                $item['percentage'] = round(($item['count'] / $total) * 100, 1);
+                return $item;
+            });
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats
+        ]);
+    }
+
+    /**
+     * Get meetings statistics by status
+     */
+    public function getMeetingsByStatus()
+    {
+        $stats = Meeting::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->map(function ($item) {
+                $statusLabels = [
+                    'upcoming' => 'À venir',
+                    'ongoing' => 'En cours',
+                    'completed' => 'Terminées',
+                    'cancelled' => 'Annulées'
+                ];
+                
+                $statusColors = [
+                    'upcoming' => 'primary',
+                    'ongoing' => 'success',
+                    'completed' => 'info',
+                    'cancelled' => 'danger'
+                ];
+
+                return [
+                    'status' => $item->status,
+                    'label' => $statusLabels[$item->status] ?? $item->status,
+                    'color' => $statusColors[$item->status] ?? 'secondary',
+                    'count' => $item->count,
+                    'percentage' => 0 // Will be calculated below
+                ];
+            });
+
+        $total = $stats->sum('count');
+        if ($total > 0) {
+            $stats = $stats->map(function ($item) use ($total) {
+                $item['percentage'] = round(($item['count'] / $total) * 100, 1);
+                return $item;
+            });
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats
         ]);
     }
 }

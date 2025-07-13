@@ -1,435 +1,441 @@
-import React, { useState } from 'react';
-import { Container, Row, Col, Card, Button, Form, Badge, Tab, Tabs } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Button, Form, Badge, Modal, Alert, Tabs, Tab } from 'react-bootstrap';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const Profile = () => {
-    const [activeTab, setActiveTab] = useState('profile');
-    const [editMode, setEditMode] = useState(false);
-    const [profileData, setProfileData] = useState({
-        firstName: 'Jean',
-        lastName: 'Dupont',
-        email: 'jean.dupont@email.com',
-        phone: '+237 6 12 34 56 78',
-        bio: 'Étudiant en informatique passionné par les nouvelles technologies.',
-        isStudent: true,
-        university: 'Université de Yaoundé I',
-        studyLevel: 'Master 2',
-        fieldOfStudy: 'Informatique',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-    });
+    const { user, updateUser } = useAuth();
+    const [userProfile, setUserProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(false);
+    const [showImageModal, setShowImageModal] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+    const [userRatings, setUserRatings] = useState([]);
+    const [userAnnouncements, setUserAnnouncements] = useState([]);
 
-    const [userPosts] = useState([
-        {
-            id: 1,
-            title: 'MacBook Pro à vendre',
-            category: 'Électronique',
-            price: 1200,
-            status: 'active',
-            views: 45,
-            likes: 12,
-            createdAt: '2024-01-15'
-        },
-        {
-            id: 2,
-            title: 'Cours de mathématiques',
-            category: 'Services',
-            price: 25,
-            status: 'active',
-            views: 23,
-            likes: 8,
-            createdAt: '2024-01-10'
-        },
-        {
-            id: 3,
-            title: 'Livres de droit',
-            category: 'Éducation',
-            price: 50,
-            status: 'sold',
-            views: 67,
-            likes: 15,
-            createdAt: '2024-01-05'
+    // Récupérer les informations du profil
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    setUserProfile(data.data);
+                    setEditForm(data.data);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération du profil:', error);
+                setErrorMessage('Erreur lors du chargement du profil');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user?.id) {
+            fetchProfile();
         }
-    ]);
+    }, [user?.id]);
 
-    const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setProfileData({
-            ...profileData,
-            [name]: type === 'checkbox' ? checked : value
+    // Récupérer les notes reçues
+    useEffect(() => {
+        const fetchRatings = async () => {
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}/ratings`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    setUserRatings(data.data.ratings);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des notes:', error);
+            }
+        };
+
+        if (user?.id) {
+            fetchRatings();
+        }
+    }, [user?.id]);
+
+    // Récupérer les annonces de l'utilisateur
+    useEffect(() => {
+        const fetchAnnouncements = async () => {
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements?user_id=${user.id}`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    setUserAnnouncements(data.data || []);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des annonces:', error);
+            }
+        };
+
+        if (user?.id) {
+            fetchAnnouncements();
+        }
+    }, [user?.id]);
+
+    const handleSaveProfile = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: editForm.name,
+                    email: editForm.email,
+                    phone: editForm.phone,
+                    university: editForm.university,
+                    study_level: editForm.study_level,
+                    field: editForm.field,
+                    bio: editForm.bio,
+                    location: editForm.location
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                setUserProfile(data.data);
+                updateUser({ ...user, ...data.data });
+                setEditing(false);
+                setSuccessMessage('Profil mis à jour avec succès !');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setErrorMessage(data.message || 'Erreur lors de la mise à jour');
+            }
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour:', error);
+            setErrorMessage('Erreur lors de la mise à jour du profil');
+        }
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
     };
 
-    const handleSave = () => {
-        setEditMode(false);
-        // Ici on enverrait les données au backend
-        console.log('Profil sauvegardé:', profileData);
-    };
-
-    const getStatusBadge = (status) => {
-        switch (status) {
-            case 'active':
-                return <Badge bg="success">Active</Badge>;
-            case 'sold':
-                return <Badge bg="secondary">Vendue</Badge>;
-            case 'expired':
-                return <Badge bg="warning">Expirée</Badge>;
-            default:
-                return <Badge bg="light">Inconnue</Badge>;
-        }
-    };
+    if (loading) {
+        return (
+            <div className="content-with-navbar">
+                <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+                    <div className="text-center">
+                        <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Chargement...</span>
+                        </div>
+                        <p className="text-muted mt-3">Chargement du profil...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="content-with-navbar">
-            <div className="grid-container px-3">
-                {/* Sidebar gauche - Profil */}
-                <div className="sidebar-left d-none d-lg-block">
-                    <Card className="card-modern">
-                        <Card.Body className="text-center p-4">
-                            <div className="position-relative mb-3">
+            <Container className="py-4">
+                {successMessage && (
+                    <Alert variant="success" className="mb-4">
+                        {successMessage}
+                    </Alert>
+                )}
+                
+                {errorMessage && (
+                    <Alert variant="danger" className="mb-4">
+                        {errorMessage}
+                    </Alert>
+                )}
+
+                <Row>
+                    <Col lg={4}>
+                        <Card className="card-modern mb-4">
+                            <Card.Body className="text-center p-4">
                                 <img 
-                                    src={profileData.avatar} 
+                                    src={userProfile?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}
                                     alt="Profile"
-                                    className="profile-avatar-large"
-                                    style={{ width: '100px', height: '100px' }}
+                                    className="rounded-circle mb-3 cursor-pointer"
+                                    style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                                    onClick={() => setShowImageModal(true)}
                                 />
-                                {editMode && (
-                                    <Button 
-                                        variant="primary" 
-                                        size="sm" 
-                                        className="position-absolute bottom-0 end-0 rounded-circle"
-                                        style={{ width: '35px', height: '35px' }}
-                                    >
-                                        📷
-                                    </Button>
+                                
+                                <h4 className="fw-bold mb-1">{userProfile?.name}</h4>
+                                
+                                {userProfile?.is_student && (
+                                    <Badge bg="primary" className="mb-2">Étudiant</Badge>
                                 )}
-                            </div>
-                            
-                            <h4 className="fw-bold mb-1">
-                                {profileData.firstName} {profileData.lastName}
-                            </h4>
-                            
-                            {profileData.isStudent && (
-                                <div className="mb-3">
-                                    <Badge className="student-badge mb-2">
-                                        Étudiant
-                                    </Badge>
-                                    <div className="d-flex flex-column gap-1">
-                                        <span className="university-tag">
-                                            {profileData.university}
+                                
+                                {userProfile?.rating && (
+                                    <div className="d-flex justify-content-center align-items-center gap-2 mb-2">
+                                        <span className="text-warning fw-bold">
+                                            ⭐ {parseFloat(userProfile.rating).toFixed(1)}
                                         </span>
-                                        <span className="university-tag">
-                                            {profileData.studyLevel} - {profileData.fieldOfStudy}
-                                        </span>
+                                        <small className="text-muted">
+                                            ({userProfile.total_ratings || 0} avis)
+                                        </small>
                                     </div>
+                                )}
+                                
+                                <p className="text-muted mb-3">{userProfile?.bio || 'Aucune biographie'}</p>
+                                
+                                <div className="d-grid gap-2">
+                                    <Button 
+                                        variant={editing ? "success" : "primary"}
+                                        onClick={editing ? handleSaveProfile : () => setEditing(true)}
+                                        className="btn-modern"
+                                    >
+                                        {editing ? '💾 Sauvegarder' : '✏️ Modifier le profil'}
+                                    </Button>
+                                    
+                                    {editing && (
+                                        <Button 
+                                            variant="secondary"
+                                            onClick={() => {
+                                                setEditing(false);
+                                                setEditForm(userProfile);
+                                            }}
+                                            className="btn-modern"
+                                        >
+                                            ❌ Annuler
+                                        </Button>
+                                    )}
                                 </div>
-                            )}
-                            
-                            <p className="text-muted">
-                                {profileData.bio}
-                            </p>
-                            
-                            <div className="d-grid gap-2">
-                                <Button 
-                                    className="btn-modern btn-gradient"
-                                    onClick={() => setEditMode(!editMode)}
-                                >
-                                    {editMode ? '✅ Sauvegarder' : '✏️ Modifier le profil'}
-                                </Button>
-                                <Button 
-                                    variant="outline-primary"
-                                    className="btn-modern"
-                                >
-                                    💬 Envoyer un message
-                                </Button>
-                            </div>
-                        </Card.Body>
-                    </Card>
+                            </Card.Body>
+                        </Card>
 
-                    <Card className="card-modern mt-3">
-                        <Card.Body>
-                            <h6 className="fw-bold mb-3">📊 Statistiques</h6>
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="text-muted">Annonces actives</span>
-                                <span className="fw-bold">2</span>
-                            </div>
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="text-muted">Ventes réalisées</span>
-                                <span className="fw-bold">1</span>
-                            </div>
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="text-muted">Note moyenne</span>
-                                <span className="fw-bold">⭐ 4.8/5</span>
-                            </div>
-                            <div className="d-flex justify-content-between">
-                                <span className="text-muted">Membre depuis</span>
-                                <span className="fw-bold">Janvier 2024</span>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </div>
+                        {/* Statistiques */}
+                        <Card className="card-modern">
+                            <Card.Header>
+                                <h6 className="fw-bold mb-0">📊 Statistiques</h6>
+                            </Card.Header>
+                            <Card.Body>
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Annonces publiées</span>
+                                    <Badge bg="primary">{userAnnouncements.length}</Badge>
+                                </div>
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Notes reçues</span>
+                                    <Badge bg="warning">{userRatings.length}</Badge>
+                                </div>
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <span>Membre depuis</span>
+                                    <small className="text-muted">
+                                        {userProfile?.created_at ? formatDate(userProfile.created_at) : 'N/A'}
+                                    </small>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
 
-                {/* Feed central */}
-                <div className="feed-column">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h4 className="fw-bold mb-1">👤 Mon Profil</h4>
-                            <p className="text-muted mb-0">Gérez vos informations personnelles et vos publications</p>
-                        </div>
-                        <div className="d-flex gap-2">
-                            <button className={`btn-social ${activeTab === 'profile' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('profile')}>
-                                👤 Profil
-                            </button>
-                            <button className={`btn-social ${activeTab === 'posts' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('posts')}>
-                                📝 Annonces
-                            </button>
-                            <button className={`btn-social ${activeTab === 'meetings' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('meetings')}>
-                                🤝 Rencontres
-                            </button>
-                        </div>
-                    </div>
+                    <Col lg={8}>
+                        <Card className="card-modern">
+                            <Card.Header>
+                                <h5 className="fw-bold mb-0">👤 Informations personnelles</h5>
+                            </Card.Header>
+                            <Card.Body>
+                                <Tabs defaultActiveKey="info" className="mb-3">
+                                    <Tab eventKey="info" title="📋 Informations">
+                                        <Form>
+                                            <Row>
+                                                <Col md={6}>
+                                                    <Form.Group className="mb-3">
+                                                        <Form.Label>Nom complet</Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            value={editing ? editForm.name || '' : userProfile?.name || ''}
+                                                            onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                                            disabled={!editing}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col md={6}>
+                                                    <Form.Group className="mb-3">
+                                                        <Form.Label>Email</Form.Label>
+                                                        <Form.Control
+                                                            type="email"
+                                                            value={editing ? editForm.email || '' : userProfile?.email || ''}
+                                                            onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                                                            disabled={!editing}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                            </Row>
+                                            
+                                            <Row>
+                                                <Col md={6}>
+                                                    <Form.Group className="mb-3">
+                                                        <Form.Label>Téléphone</Form.Label>
+                                                        <Form.Control
+                                                            type="tel"
+                                                            value={editing ? editForm.phone || '' : userProfile?.phone || ''}
+                                                            onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                                                            disabled={!editing}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col md={6}>
+                                                    <Form.Group className="mb-3">
+                                                        <Form.Label>Localisation</Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            value={editing ? editForm.location || '' : userProfile?.location || ''}
+                                                            onChange={(e) => setEditForm({...editForm, location: e.target.value})}
+                                                            disabled={!editing}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                            </Row>
 
-                    <div className="card-modern">
-                        <div className="p-4">
-                            {activeTab === 'profile' && (
-                                <Form>
-                                        <Row>
-                                            <Col md={6}>
-                                                <Form.Group className="mb-3">
-                                                    <Form.Label className="fw-semibold">
-                                                        Prénom
-                                                    </Form.Label>
-                                                    <Form.Control
-                                                        type="text"
-                                                        name="firstName"
-                                                        value={profileData.firstName}
-                                                        onChange={handleInputChange}
-                                                        disabled={!editMode}
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                            <Col md={6}>
-                                                <Form.Group className="mb-3">
-                                                    <Form.Label className="fw-semibold">
-                                                        Nom
-                                                    </Form.Label>
-                                                    <Form.Control
-                                                        type="text"
-                                                        name="lastName"
-                                                        value={profileData.lastName}
-                                                        onChange={handleInputChange}
-                                                        disabled={!editMode}
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                        </Row>
-
-                                        <Row>
-                                            <Col md={6}>
-                                                <Form.Group className="mb-3">
-                                                    <Form.Label className="fw-semibold">
-                                                        Email
-                                                    </Form.Label>
-                                                    <Form.Control
-                                                        type="email"
-                                                        name="email"
-                                                        value={profileData.email}
-                                                        onChange={handleInputChange}
-                                                        disabled={!editMode}
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                            <Col md={6}>
-                                                <Form.Group className="mb-3">
-                                                    <Form.Label className="fw-semibold">
-                                                        Téléphone
-                                                    </Form.Label>
-                                                    <Form.Control
-                                                        type="tel"
-                                                        name="phone"
-                                                        value={profileData.phone}
-                                                        onChange={handleInputChange}
-                                                        disabled={!editMode}
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                        </Row>
-
-                                        <Form.Group className="mb-3">
-                                            <Form.Label className="fw-semibold">
-                                                Biographie
-                                            </Form.Label>
-                                            <Form.Control
-                                                as="textarea"
-                                                rows={3}
-                                                name="bio"
-                                                value={profileData.bio}
-                                                onChange={handleInputChange}
-                                                disabled={!editMode}
-                                            />
-                                        </Form.Group>
-
-                                        <Form.Group className="mb-3">
-                                            <Form.Check
-                                                type="checkbox"
-                                                name="isStudent"
-                                                checked={profileData.isStudent}
-                                                onChange={handleInputChange}
-                                                disabled={!editMode}
-                                                label="Je suis étudiant(e)"
-                                                className="fw-semibold"
-                                            />
-                                        </Form.Group>
-
-                                        {profileData.isStudent && (
-                                            <div className="border rounded p-3 mb-3" style={{backgroundColor: '#f8f9fa'}}>
-                                                <h6 className="fw-bold mb-3">Informations étudiantes</h6>
-                                                
-                                                <Form.Group className="mb-3">
-                                                    <Form.Label className="fw-semibold">
-                                                        Université
-                                                    </Form.Label>
-                                                    <Form.Control
-                                                        type="text"
-                                                        name="university"
-                                                        value={profileData.university}
-                                                        onChange={handleInputChange}
-                                                        disabled={!editMode}
-                                                    />
-                                                </Form.Group>
-
+                                            {userProfile?.is_student && (
                                                 <Row>
                                                     <Col md={6}>
                                                         <Form.Group className="mb-3">
-                                                            <Form.Label className="fw-semibold">
-                                                                Niveau d'études
-                                                            </Form.Label>
+                                                            <Form.Label>Université</Form.Label>
                                                             <Form.Control
                                                                 type="text"
-                                                                name="studyLevel"
-                                                                value={profileData.studyLevel}
-                                                                onChange={handleInputChange}
-                                                                disabled={!editMode}
+                                                                value={editing ? editForm.university || '' : userProfile?.university || ''}
+                                                                onChange={(e) => setEditForm({...editForm, university: e.target.value})}
+                                                                disabled={!editing}
                                                             />
                                                         </Form.Group>
                                                     </Col>
                                                     <Col md={6}>
                                                         <Form.Group className="mb-3">
-                                                            <Form.Label className="fw-semibold">
-                                                                Domaine d'études
-                                                            </Form.Label>
-                                                            <Form.Control
-                                                                type="text"
-                                                                name="fieldOfStudy"
-                                                                value={profileData.fieldOfStudy}
-                                                                onChange={handleInputChange}
-                                                                disabled={!editMode}
-                                                            />
+                                                            <Form.Label>Niveau d'études</Form.Label>
+                                                            <Form.Select
+                                                                value={editing ? editForm.study_level || '' : userProfile?.study_level || ''}
+                                                                onChange={(e) => setEditForm({...editForm, study_level: e.target.value})}
+                                                                disabled={!editing}
+                                                            >
+                                                                <option value="">Sélectionner...</option>
+                                                                <option value="licence1">Licence 1</option>
+                                                                <option value="licence2">Licence 2</option>
+                                                                <option value="licence3">Licence 3</option>
+                                                                <option value="master1">Master 1</option>
+                                                                <option value="master2">Master 2</option>
+                                                                <option value="doctorat">Doctorat</option>
+                                                            </Form.Select>
                                                         </Form.Group>
                                                     </Col>
                                                 </Row>
+                                            )}
+
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Domaine d'études</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    value={editing ? editForm.field || '' : userProfile?.field || ''}
+                                                    onChange={(e) => setEditForm({...editForm, field: e.target.value})}
+                                                    disabled={!editing}
+                                                />
+                                            </Form.Group>
+
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Biographie</Form.Label>
+                                                <Form.Control
+                                                    as="textarea"
+                                                    rows={4}
+                                                    value={editing ? editForm.bio || '' : userProfile?.bio || ''}
+                                                    onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
+                                                    disabled={!editing}
+                                                    maxLength={500}
+                                                />
+                                                {editing && (
+                                                    <Form.Text className="text-muted">
+                                                        {(editForm.bio || '').length}/500 caractères
+                                                    </Form.Text>
+                                                )}
+                                            </Form.Group>
+                                        </Form>
+                                    </Tab>
+
+                                    <Tab eventKey="ratings" title={`⭐ Notes reçues (${userRatings.length})`}>
+                                        {userRatings.length === 0 ? (
+                                            <div className="text-center py-4">
+                                                <p className="text-muted">Aucune note reçue pour le moment</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {userRatings.map((rating, index) => (
+                                                    <Card key={index} className="border-0 bg-light">
+                                                        <Card.Body className="p-3">
+                                                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                                                <div className="d-flex align-items-center gap-2">
+                                                                    <img 
+                                                                        src={rating.rater?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=30&h=30&fit=crop&crop=face'}
+                                                                        alt={rating.rater?.name}
+                                                                        className="rounded-circle"
+                                                                        style={{ width: '30px', height: '30px', objectFit: 'cover' }}
+                                                                    />
+                                                                    <span className="fw-semibold">{rating.rater?.name}</span>
+                                                                </div>
+                                                                <div className="d-flex align-items-center gap-2">
+                                                                    <span className="text-warning fw-bold">
+                                                                        {'⭐'.repeat(rating.rating)}
+                                                                    </span>
+                                                                    <Badge bg="secondary" style={{ fontSize: '10px' }}>
+                                                                        {rating.transaction_type}
+                                                                    </Badge>
+                                                                </div>
+                                                            </div>
+                                                            {rating.comment && (
+                                                                <p className="mb-2 text-muted" style={{ fontSize: '14px' }}>
+                                                                    "{rating.comment}"
+                                                                </p>
+                                                            )}
+                                                            <small className="text-muted">
+                                                                {formatDate(rating.created_at)}
+                                                            </small>
+                                                        </Card.Body>
+                                                    </Card>
+                                                ))}
                                             </div>
                                         )}
+                                    </Tab>
+                                </Tabs>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
 
-                                        {editMode && (
-                                            <div className="d-flex gap-2">
-                                                <Button 
-                                                    className="btn-modern btn-gradient"
-                                                    onClick={handleSave}
-                                                >
-                                                    Sauvegarder
-                                                </Button>
-                                                <Button 
-                                                    variant="outline-secondary"
-                                                    className="btn-modern"
-                                                    onClick={() => setEditMode(false)}
-                                                >
-                                                    Annuler
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </Form>
-                            )}
-
-                            {activeTab === 'posts' && (
-                                <div>
-                                    <div className="d-flex justify-content-between align-items-center mb-4">
-                                        <h5 className="fw-bold">Mes annonces</h5>
-                                        <Button 
-                                            className="btn-modern btn-gradient"
-                                        >
-                                            ➕ Nouvelle annonce
-                                        </Button>
-                                    </div>
-
-                                    {userPosts.map(post => (
-                                        <Card key={post.id} className="mb-3">
-                                            <Card.Body>
-                                                <div className="d-flex justify-content-between align-items-start">
-                                                    <div>
-                                                        <h6 className="fw-bold mb-1">{post.title}</h6>
-                                                        <p className="text-muted mb-2">{post.category}</p>
-                                                        <div className="d-flex gap-2 align-items-center">
-                                                            {getStatusBadge(post.status)}
-                                                            <span className="fw-bold text-primary">{post.price}€</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-end">
-                                                        <small className="text-muted d-block">
-                                                            {post.views} vues • {post.likes} likes
-                                                        </small>
-                                                        <small className="text-muted">
-                                                            {post.createdAt}
-                                                        </small>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 d-flex gap-2">
-                                                    <Button variant="outline-primary" size="sm">
-                                                        ✏️ Modifier
-                                                    </Button>
-                                                    <Button variant="outline-secondary" size="sm">
-                                                        👁️ Voir
-                                                    </Button>
-                                                    <Button variant="outline-danger" size="sm">
-                                                        🗑️ Supprimer
-                                                    </Button>
-                                                </div>
-                                            </Card.Body>
-                                        </Card>
-                                    ))}
-                                </div>
-                            )}
-
-                            {activeTab === 'meetings' && (
-                                <div className="text-center py-5">
-                                    <h5 className="text-muted">Aucune rencontre programmée</h5>
-                                    <p className="text-muted">
-                                        Organisez votre première rencontre avec d'autres étudiants
-                                    </p>
-                                    <Button className="btn-modern btn-gradient">
-                                        🎉 Organiser une rencontre
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sidebar droite */}
-                <div className="sidebar-right d-none d-lg-block">
-                    <Card className="card-modern">
-                        <Card.Body className="p-3">
-                            <h6 className="fw-bold mb-3">🎯 Activité</h6>
-                            <div className="d-flex flex-column gap-2">
-                                <small className="text-muted">📈 Profil vu 45 fois ce mois</small>
-                                <small className="text-muted">💬 12 messages reçus</small>
-                                <small className="text-muted">⭐ Note moyenne: 4.8/5</small>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </div>
-            </div>
+                {/* Modal pour changer l'image de profil */}
+                <Modal show={showImageModal} onHide={() => setShowImageModal(false)}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Changer l'image de profil</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <p className="text-muted">
+                            Fonctionnalité de changement d'image de profil à implémenter.
+                        </p>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowImageModal(false)}>
+                            Fermer
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+            </Container>
         </div>
     );
 };

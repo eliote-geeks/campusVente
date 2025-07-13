@@ -17,6 +17,8 @@ import Meetings from './pages/Meetings.jsx';
 import University from './pages/University.jsx';
 import Students from './pages/Students.jsx';
 import StudentProfile from './pages/StudentProfile.jsx';
+import MyAnnouncements from './pages/MyAnnouncements.jsx';
+import Favorites from './pages/Favorites.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 
 // Composant pour protéger les routes privées
@@ -143,6 +145,22 @@ const AppContent = () => {
                             element={
                                 <PrivateRoute>
                                     <StudentProfile />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/my-announcements" 
+                            element={
+                                <PrivateRoute>
+                                    <MyAnnouncements />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/favorites" 
+                            element={
+                                <PrivateRoute>
+                                    <Favorites />
                                 </PrivateRoute>
                             } 
                         />

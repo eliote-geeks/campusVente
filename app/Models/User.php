@@ -67,11 +67,88 @@ class User extends Authenticatable
         return $this->last_seen && $this->last_seen->diffInMinutes(now()) <= 5;
     }
 
+    // Relations pour le système de notation
+    public function givenRatings()
+    {
+        return $this->hasMany(UserRating::class, 'rater_id');
+    }
+
+    public function receivedRatings()
+    {
+        return $this->hasMany(UserRating::class, 'rated_user_id');
+    }
+
+    // Méthodes pour gérer les notes
+    public function getAverageRatingAttribute()
+    {
+        return UserRating::getAverageRating($this->id);
+    }
+
+    public function getTotalRatingsAttribute()
+    {
+        return UserRating::getTotalRatings($this->id);
+    }
+
+    public function getRatingDistributionAttribute()
+    {
+        return UserRating::getRatingDistribution($this->id);
+    }
+
+    // Articles phares (annonces les plus populaires)
+    public function getFeaturedAnnouncementsAttribute()
+    {
+        return $this->announcements()
+            ->withCount(['likes', 'views'])
+            ->orderByRaw('(likes_count * 3 + views_count * 1) DESC')
+            ->limit(3)
+            ->get();
+    }
+
+    // Score de recommandation basé sur les notes et l'activité
+    public function getRecommendationScoreAttribute()
+    {
+        $avgRating = $this->average_rating;
+        $totalRatings = $this->total_ratings;
+        $totalAnnouncements = $this->announcements()->count();
+        $totalLikes = $this->announcements()->withCount('likes')->sum('likes_count');
+        
+        // Formule de score : note moyenne * nombre d'évaluations + activité
+        $ratingScore = $avgRating * min($totalRatings, 10); // Cap à 10 évaluations pour éviter l'inflation
+        $activityScore = ($totalAnnouncements * 2) + ($totalLikes * 0.5);
+        
+        return round($ratingScore + $activityScore, 2);
+    }
+
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class);
+    }
+
     /**
      * Update user's last seen timestamp
      */
     public function updateLastSeen(): void
     {
         $this->update(['last_seen' => now()]);
+    }
+
+    /**
+     * Relations
+     */
+    public function meetings()
+    {
+        return $this->hasMany(Meeting::class);
+    }
+
+    public function participatingMeetings()
+    {
+        return $this->belongsToMany(Meeting::class, 'meeting_participants')
+                    ->withPivot(['status', 'message', 'is_organizer'])
+                    ->withTimestamps();
+    }
+
+    public function organizingMeetings()
+    {
+        return $this->participatingMeetings()->wherePivot('is_organizer', true);
     }
 }

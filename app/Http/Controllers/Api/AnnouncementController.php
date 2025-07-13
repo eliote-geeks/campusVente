@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Models\AnnouncementLike;
+use App\Models\AnnouncementView;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AnnouncementController extends Controller
 {
@@ -19,6 +22,18 @@ class AnnouncementController extends Controller
     public function index(Request $request)
     {
         $query = Announcement::with(['user', 'category']);
+        
+        // Inclure les compteurs de likes et vues si demandé
+        if ($request->get('with_interactions')) {
+            $query->withCount(['likes', 'views']);
+            
+            // Ajouter le statut de like pour l'utilisateur connecté
+            if (Auth::check()) {
+                $userId = Auth::id();
+                $query->addSelect(['*'])
+                    ->selectRaw("EXISTS(SELECT 1 FROM announcement_likes WHERE announcement_id = announcements.id AND user_id = ?) as is_liked", [$userId]);
+            }
+        }
 
         // Filter by status
         if ($request->has('status')) {
@@ -43,13 +58,21 @@ class AnnouncementController extends Controller
         // Order by latest
         $query->orderBy('created_at', 'desc');
 
-        // Get results
-        $announcements = $query->get();
+        // Pagination
+        $perPage = $request->get('per_page', 15);
+        $announcements = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => $announcements,
-            'total' => $announcements->count()
+            'data' => $announcements->items(),
+            'meta' => [
+                'current_page' => $announcements->currentPage(),
+                'last_page' => $announcements->lastPage(),
+                'per_page' => $announcements->perPage(),
+                'total' => $announcements->total(),
+                'from' => $announcements->firstItem(),
+                'to' => $announcements->lastItem()
+            ]
         ]);
     }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, InputGroup, Spinner, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
@@ -12,129 +12,45 @@ const DashboardMeetings = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [error, setError] = useState('');
+    const [categories, setCategories] = useState([]);
 
-    const sampleMeetings = [
-        {
-            id: 1,
-            title: 'Groupe d\'étude Mathématiques',
-            description: 'Révision collective pour les examens de fin de semestre en mathématiques. Tous niveaux bienvenus.',
-            organizer: {
-                name: 'Marie Dupont',
-                university: 'Sorbonne Université',
-                avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=50&h=50&fit=crop&crop=face'
-            },
-            participants: [
-                { name: 'Paul Martin', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Sophie Legrand', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Tom Rousseau', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=30&h=30&fit=crop&crop=face' }
-            ],
-            date: '2024-01-20',
-            time: '14:00',
-            location: 'Bibliothèque Sainte-Geneviève',
-            maxParticipants: 8,
-            currentParticipants: 4,
-            status: 'upcoming',
-            category: 'Étude',
-            createdAt: '2024-01-15T10:30:00Z'
-        },
-        {
-            id: 2,
-            title: 'Soirée Networking Sciences Po',
-            description: 'Rencontre informelle entre étudiants de Sciences Po pour échanger sur nos projets et créer des liens.',
-            organizer: {
-                name: 'Alexandre Petit',
-                university: 'Sciences Po Paris',
-                avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop&crop=face'
-            },
-            participants: [
-                { name: 'Julie Bernard', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Lucas Moreau', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=30&h=30&fit=crop&crop=face' }
-            ],
-            date: '2024-01-22',
-            time: '18:30',
-            location: 'Café de Flore',
-            maxParticipants: 12,
-            currentParticipants: 3,
-            status: 'upcoming',
-            category: 'Social',
-            createdAt: '2024-01-14T15:45:00Z'
-        },
-        {
-            id: 3,
-            title: 'Atelier Programmation Web',
-            description: 'Session pratique de développement web avec React et Node.js. Niveau intermédiaire requis.',
-            organizer: {
-                name: 'Emma Roux',
-                university: 'Sorbonne Université',
-                avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=50&h=50&fit=crop&crop=face'
-            },
-            participants: [
-                { name: 'Paul Martin', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Marie Dupont', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Tom Rousseau', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Sophie Legrand', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=30&h=30&fit=crop&crop=face' }
-            ],
-            date: '2024-01-18',
-            time: '10:00',
-            location: 'Salle informatique Campus Jussieu',
-            maxParticipants: 15,
-            currentParticipants: 5,
-            status: 'completed',
-            category: 'Formation',
-            createdAt: '2024-01-12T18:00:00Z'
-        },
-        {
-            id: 4,
-            title: 'Tournoi de Football Universitaire',
-            description: 'Compétition amicale entre différentes universités parisiennes. Inscription par équipe de 11 joueurs.',
-            organizer: {
-                name: 'Lucas Moreau',
-                university: 'Université Lyon 1',
-                avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face'
-            },
-            participants: [
-                { name: 'Alexandre Petit', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Julie Bernard', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=30&h=30&fit=crop&crop=face' }
-            ],
-            date: '2024-01-25',
-            time: '15:00',
-            location: 'Stade Charléty',
-            maxParticipants: 50,
-            currentParticipants: 23,
-            status: 'upcoming',
-            category: 'Sport',
-            createdAt: '2024-01-10T11:15:00Z'
-        },
-        {
-            id: 5,
-            title: 'Conférence Intelligence Artificielle',
-            description: 'Présentation des dernières avancées en IA par des experts du domaine. Suivi d\'un débat ouvert.',
-            organizer: {
-                name: 'Sophie Legrand',
-                university: null,
-                avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face'
-            },
-            participants: [
-                { name: 'Marie Dupont', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=30&h=30&fit=crop&crop=face' },
-                { name: 'Paul Martin', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=30&h=30&fit=crop&crop=face' }
-            ],
-            date: '2024-01-15',
-            time: '16:00',
-            location: 'Amphithéâtre Richelieu',
-            maxParticipants: 100,
-            currentParticipants: 45,
-            status: 'cancelled',
-            category: 'Conférence',
-            createdAt: '2024-01-08T09:15:00Z'
+    // Charger les données depuis l'API
+    const fetchMeetings = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings');
+            const data = await response.json();
+            if (data.success) {
+                setMeetings(data.data);
+            } else {
+                setError('Erreur lors du chargement des rencontres');
+            }
+        } catch (error) {
+            console.error('Error fetching meetings:', error);
+            setError('Erreur lors du chargement des rencontres');
         }
-    ];
+    };
+    
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/categories');
+            const data = await response.json();
+            if (data.success) {
+                setCategories(data.data.filter(cat => cat.is_active));
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
+
 
     useEffect(() => {
-        setTimeout(() => {
-            setMeetings(sampleMeetings);
-            setFilteredMeetings(sampleMeetings);
+        const loadData = async () => {
+            setLoading(true);
+            await Promise.all([fetchMeetings(), fetchCategories()]);
             setLoading(false);
-        }, 1000);
+        };
+        loadData();
     }, []);
 
     useEffect(() => {
@@ -174,15 +90,37 @@ const DashboardMeetings = () => {
         }
     };
 
-    const getCategoryIcon = (category) => {
-        switch (category) {
-            case 'Étude': return '📚';
-            case 'Social': return '🤝';
-            case 'Formation': return '💻';
-            case 'Sport': return '⚽';
-            case 'Conférence': return '🎤';
-            default: return '📅';
-        }
+    const getCategoryIcon = (categoryId) => {
+        const cat = categories.find(c => c.id === categoryId);
+        return cat ? cat.icon : '📅';
+    };
+    
+    const getTypeIcon = (type) => {
+        const icons = {
+            study_group: '📚',
+            networking: '🤝', 
+            party: '🎉',
+            sport: '⚽',
+            cultural: '🎭',
+            conference: '🎤',
+            workshop: '🔧',
+            other: '📅'
+        };
+        return icons[type] || '📅';
+    };
+    
+    const getTypeLabel = (type) => {
+        const labels = {
+            study_group: 'Groupe d\'étude',
+            networking: 'Networking',
+            party: 'Soirée/Fête', 
+            sport: 'Sport',
+            cultural: 'Culturel',
+            conference: 'Conférence',
+            workshop: 'Atelier',
+            other: 'Autre'
+        };
+        return labels[type] || type;
     };
 
     const formatDate = (dateString) => {
@@ -195,17 +133,59 @@ const DashboardMeetings = () => {
         });
     };
 
+    const handleEditMeeting = (meeting) => {
+        setSelectedMeeting(meeting);
+        // TODO: Implement edit modal
+        console.log('Edit meeting:', meeting);
+    };
+
+    const handleDeleteMeeting = async (meetingId) => {
+        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette rencontre ?')) {
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/api/v1/meetings/${meetingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Recharger les données
+                    await fetchMeetings();
+                    alert('Rencontre supprimée avec succès');
+                } else {
+                    alert(data.message || 'Erreur lors de la suppression');
+                }
+            } catch (error) {
+                console.error('Error deleting meeting:', error);
+                alert('Erreur lors de la suppression');
+            }
+        }
+    };
+
     if (loading) {
         return (
             <div className="content-with-navbar">
                 <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
                     <div className="text-center">
-                        <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">Chargement...</span>
-                        </div>
+                        <Spinner animation="border" variant="primary" style={{ width: '3rem', height: '3rem' }} />
                         <p className="text-muted mt-3">Chargement des rencontres...</p>
                     </div>
                 </div>
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+            <div className="content-with-navbar">
+                <Container className="mt-5">
+                    <Alert variant="danger">
+                        {error}
+                    </Alert>
+                </Container>
             </div>
         );
     }
@@ -320,62 +300,47 @@ const DashboardMeetings = () => {
                                             <td>
                                                 <div className="d-flex align-items-center">
                                                     <span className="me-2" style={{ fontSize: '1.2rem' }}>
-                                                        {getCategoryIcon(meeting.category)}
+                                                        {getTypeIcon(meeting.type)}
                                                     </span>
                                                     <div>
                                                         <div className="fw-bold">{meeting.title}</div>
-                                                        <small className="text-muted">{meeting.category}</small>
+                                                        <small className="text-muted">{getTypeLabel(meeting.type)}</small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div className="d-flex align-items-center">
-                                                    <img 
-                                                        src={meeting.organizer.avatar} 
-                                                        alt={meeting.organizer.name}
-                                                        className="rounded-circle me-2"
-                                                        style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                                                    />
+                                                    <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: '32px', height: '32px' }}>
+                                                        <span className="text-white fw-bold">{meeting.user?.name?.charAt(0) || 'U'}</span>
+                                                    </div>
                                                     <div>
-                                                        <div className="fw-semibold">{meeting.organizer.name}</div>
-                                                        <small className="text-muted">{meeting.organizer.university || 'Externe'}</small>
+                                                        <div className="fw-semibold">{meeting.user?.name || 'Utilisateur inconnu'}</div>
+                                                        <small className="text-muted">{meeting.user?.university || 'Université non spécifiée'}</small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="fw-semibold">{formatDate(meeting.date)}</div>
-                                                <small className="text-muted">{meeting.time}</small>
+                                                <div className="fw-semibold">{meeting.formatted_date || formatDate(meeting.meeting_date)}</div>
+                                                <small className="text-muted">{meeting.time_until_meeting || ''}</small>
                                             </td>
                                             <td>
-                                                <small className="text-muted">📍 {meeting.location}</small>
+                                                <div>
+                                                    <div className="fw-semibold">{meeting.location}</div>
+                                                    {meeting.address && <small className="text-muted">{meeting.address}</small>}
+                                                    {meeting.is_online && <span className="ms-2 badge bg-info">En ligne</span>}
+                                                </div>
                                             </td>
                                             <td>
                                                 <div className="d-flex align-items-center">
-                                                    <div className="me-2">
-                                                        {meeting.participants.slice(0, 3).map((participant, index) => (
-                                                            <img 
-                                                                key={index}
-                                                                src={participant.avatar} 
-                                                                alt={participant.name}
-                                                                className="rounded-circle border border-2 border-white"
-                                                                style={{ 
-                                                                    width: '24px', 
-                                                                    height: '24px', 
-                                                                    objectFit: 'cover',
-                                                                    marginLeft: index > 0 ? '-8px' : '0'
-                                                                }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <div>
-                                                        <div className="fw-semibold">{meeting.currentParticipants}/{meeting.maxParticipants}</div>
-                                                        <small className="text-muted">participants</small>
-                                                    </div>
+                                                    <Badge bg="info" pill className="me-2">{meeting.participants_count || 0}</Badge>
+                                                    {meeting.max_participants && (
+                                                        <small className="text-muted">/ {meeting.max_participants}</small>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td>
-                                                <Badge bg={getStatusColor(meeting.status)}>
-                                                    {getStatusText(meeting.status)}
+                                                <Badge bg={meeting.status_color || getStatusColor(meeting.status)} pill>
+                                                    {meeting.status_label || getStatusText(meeting.status)}
                                                 </Badge>
                                             </td>
                                             <td>
@@ -387,10 +352,20 @@ const DashboardMeetings = () => {
                                                     >
                                                         👁️
                                                     </Button>
-                                                    <Button size="sm" variant="outline-warning">
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline-warning"
+                                                        onClick={() => handleEditMeeting(meeting)}
+                                                        title="Modifier"
+                                                    >
                                                         ✏️
                                                     </Button>
-                                                    <Button size="sm" variant="outline-danger">
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline-danger"
+                                                        onClick={() => handleDeleteMeeting(meeting.id)}
+                                                        title="Supprimer"
+                                                    >
                                                         🗑️
                                                     </Button>
                                                 </div>
@@ -408,7 +383,7 @@ const DashboardMeetings = () => {
                     <Modal show={!!selectedMeeting} onHide={() => setSelectedMeeting(null)} size="lg">
                         <Modal.Header closeButton>
                             <Modal.Title>
-                                {getCategoryIcon(selectedMeeting.category)} {selectedMeeting.title}
+                                {getTypeIcon(selectedMeeting.type)} {selectedMeeting.title}
                             </Modal.Title>
                         </Modal.Header>
                         <Modal.Body>
@@ -419,46 +394,56 @@ const DashboardMeetings = () => {
                                     
                                     <h5>Détails</h5>
                                     <div className="mb-3">
-                                        <strong>📅 Date:</strong> {formatDate(selectedMeeting.date)}<br/>
-                                        <strong>⏰ Heure:</strong> {selectedMeeting.time}<br/>
+                                        <strong>📅 Date:</strong> {selectedMeeting.formatted_date || formatDate(selectedMeeting.meeting_date)}<br/>
                                         <strong>📍 Lieu:</strong> {selectedMeeting.location}<br/>
-                                        <strong>🏷️ Catégorie:</strong> {selectedMeeting.category}
+                                        {selectedMeeting.address && (
+                                            <><strong>📍 Adresse:</strong> {selectedMeeting.address}<br/></>
+                                        )}
+                                        <strong>🏷️ Type:</strong> {getTypeLabel(selectedMeeting.type)}<br/>
+                                        <strong>💰 Prix:</strong> {selectedMeeting.formatted_price || (selectedMeeting.is_free ? 'Gratuit' : `${selectedMeeting.price} FCFA`)}<br/>
+                                        {selectedMeeting.is_online && (
+                                            <><strong>💻 En ligne:</strong> Oui<br/></>
+                                        )}
+                                        {selectedMeeting.requirements && (
+                                            <><strong>📋 Prérequis:</strong> {selectedMeeting.requirements}<br/></>
+                                        )}
+                                        {selectedMeeting.contact_info && (
+                                            <><strong>📞 Contact:</strong> {selectedMeeting.contact_info}<br/></>
+                                        )}
                                     </div>
                                     
-                                    <h5>Participants ({selectedMeeting.currentParticipants}/{selectedMeeting.maxParticipants})</h5>
-                                    <div className="d-flex flex-wrap gap-2">
-                                        {selectedMeeting.participants.map((participant, index) => (
-                                            <div key={index} className="d-flex align-items-center bg-light rounded p-2">
-                                                <img 
-                                                    src={participant.avatar} 
-                                                    alt={participant.name}
-                                                    className="rounded-circle me-2"
-                                                    style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                                                />
-                                                <small className="fw-semibold">{participant.name}</small>
-                                            </div>
-                                        ))}
+                                    <h5>Participants ({selectedMeeting.participants_count || 0}{selectedMeeting.max_participants ? `/${selectedMeeting.max_participants}` : ''})</h5>
+                                    <div className="mb-3">
+                                        <Badge bg="info" pill>{selectedMeeting.participants_count || 0} participants inscrits</Badge>
+                                        {selectedMeeting.max_participants && (
+                                            <Badge bg="secondary" pill className="ms-2">Max: {selectedMeeting.max_participants}</Badge>
+                                        )}
                                     </div>
                                 </Col>
                                 <Col md={4}>
                                     <h5>Organisateur</h5>
                                     <div className="d-flex align-items-center mb-3">
-                                        <img 
-                                            src={selectedMeeting.organizer.avatar} 
-                                            alt={selectedMeeting.organizer.name}
-                                            className="rounded-circle me-3"
-                                            style={{ width: '60px', height: '60px', objectFit: 'cover' }}
-                                        />
+                                        <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '60px', height: '60px' }}>
+                                            <span className="text-white fw-bold fs-4">{selectedMeeting.user?.name?.charAt(0) || 'U'}</span>
+                                        </div>
                                         <div>
-                                            <div className="fw-bold">{selectedMeeting.organizer.name}</div>
-                                            <small className="text-muted">{selectedMeeting.organizer.university || 'Externe'}</small>
+                                            <div className="fw-bold">{selectedMeeting.user?.name || 'Utilisateur inconnu'}</div>
+                                            <small className="text-muted">{selectedMeeting.user?.university || 'Université non spécifiée'}</small>
                                         </div>
                                     </div>
                                     
                                     <div className="mb-3">
-                                        <Badge bg={getStatusColor(selectedMeeting.status)} className="mb-2">
-                                            {getStatusText(selectedMeeting.status)}
+                                        <Badge bg={selectedMeeting.status_color || getStatusColor(selectedMeeting.status)} className="mb-2">
+                                            {selectedMeeting.status_label || getStatusText(selectedMeeting.status)}
                                         </Badge>
+                                    </div>
+                                    
+                                    <div className="mb-3">
+                                        <small className="text-muted">Créée le {new Date(selectedMeeting.created_at).toLocaleDateString('fr-FR')}</small>
+                                    </div>
+                                    
+                                    <div className="mb-3">
+                                        <small className="text-muted">Vues: {selectedMeeting.views || 0}</small>
                                     </div>
                                 </Col>
                             </Row>
@@ -471,67 +456,27 @@ const DashboardMeetings = () => {
                     </Modal>
                 )}
 
-                {/* Modal création */}
+                {/* Modal création - Redirection vers le formulaire complet */}
                 <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} size="lg">
                     <Modal.Header closeButton>
                         <Modal.Title>➕ Créer une nouvelle rencontre</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
-                        <Form>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Titre</Form.Label>
-                                <Form.Control type="text" placeholder="Titre de la rencontre" />
-                            </Form.Group>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Description</Form.Label>
-                                <Form.Control as="textarea" rows={3} placeholder="Description détaillée" />
-                            </Form.Group>
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Date</Form.Label>
-                                        <Form.Control type="date" />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Heure</Form.Label>
-                                        <Form.Control type="time" />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Lieu</Form.Label>
-                                <Form.Control type="text" placeholder="Lieu de la rencontre" />
-                            </Form.Group>
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Catégorie</Form.Label>
-                                        <Form.Select>
-                                            <option>Étude</option>
-                                            <option>Social</option>
-                                            <option>Formation</option>
-                                            <option>Sport</option>
-                                            <option>Conférence</option>
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Nombre max de participants</Form.Label>
-                                        <Form.Control type="number" placeholder="10" />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Form>
+                        <div className="text-center">
+                            <p className="mb-3">Pour créer une rencontre complète, utilisez le formulaire avancé.</p>
+                            <Button 
+                                as={Link}
+                                to="/create-meeting"
+                                className="btn-modern btn-gradient"
+                                onClick={() => setShowCreateModal(false)}
+                            >
+                                🚀 Aller au formulaire complet
+                            </Button>
+                        </div>
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
                             Annuler
-                        </Button>
-                        <Button className="btn-modern btn-gradient" onClick={() => setShowCreateModal(false)}>
-                            Créer la rencontre
                         </Button>
                     </Modal.Footer>
                 </Modal>

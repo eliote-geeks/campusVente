@@ -29,6 +29,11 @@ class Category extends Model
         return $this->hasMany(Announcement::class);
     }
 
+    public function meetings()
+    {
+        return $this->hasMany(Meeting::class);
+    }
+
     public function getActiveAnnouncementsCountAttribute()
     {
         return $this->announcements()->where('status', 'active')->count();

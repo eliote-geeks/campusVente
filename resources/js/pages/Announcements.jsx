@@ -14,181 +14,57 @@ const Announcements = () => {
     const [sortBy, setSortBy] = useState('newest');
     const [showCreateModal, setShowCreateModal] = useState(false);
 
-    // Données simulées d'annonces publiques
-    const sampleAnnouncements = [
-        {
-            id: 1,
-            title: 'MacBook Pro 2021 - Excellent état',
-            description: 'MacBook Pro 13" M1, 8GB RAM, 256GB SSD. Utilisé pour mes études pendant 6 mois, excellent état. Vendu car je pars à l\'étranger. Livré avec chargeur original et housse de protection.',
-            price: 1200,
-            category: 'Électronique',
-            type: 'sell',
-            author: {
-                name: 'Marie Dupont',
-                university: 'Sorbonne Université',
-                phone: '+33612345678',
-                avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=60&h=60&fit=crop&crop=face',
-                isStudent: true,
-                rating: 4.8,
-                responseTime: '2h'
-            },
-            images: [
-                'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=300&fit=crop',
-                'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=400&h=300&fit=crop'
-            ],
-            createdAt: '2024-01-15T10:30:00Z',
-            location: 'Paris 5ème',
-            views: 156,
-            likes: 12,
-            isFavorite: false,
-            isNegotiable: true,
-            condition: 'Excellent'
-        },
-        {
-            id: 2,
-            title: 'Colocation proche campus - Chambre libre',
-            description: 'Belle chambre de 12m² dans appartement 3 pièces situé à 5 minutes à pied du campus. Loyer 600€/mois charges comprises (eau, électricité, internet). Cuisine équipée, salle de bain récente. Ambiance studieuse et conviviale.',
-            price: 600,
-            category: 'Logement',
-            type: 'housing',
-            author: {
-                name: 'Paul Martin',
-                university: 'Université de Paris',
-                phone: '+33687654321',
-                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
-                isStudent: true,
-                rating: 4.6,
-                responseTime: '1h'
-            },
-            images: [
-                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
-                'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop'
-            ],
-            createdAt: '2024-01-14T15:45:00Z',
-            location: 'Paris 14ème',
-            views: 234,
-            likes: 18,
-            isFavorite: true,
-            isNegotiable: false,
-            condition: null
-        },
-        {
-            id: 3,
-            title: 'Cours particuliers de mathématiques',
-            description: 'Professeur expérimenté (10 ans d\'expérience) propose cours particuliers de mathématiques pour tous niveaux (collège, lycée, prépa, université). Méthodes pédagogiques adaptées à chaque élève. Première séance gratuite pour évaluation.',
-            price: 25,
-            category: 'Services',
-            type: 'service',
-            author: {
-                name: 'Sophie Legrand',
-                university: null,
-                phone: '+33645123789',
-                avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60&h=60&fit=crop&crop=face',
-                isStudent: false,
-                rating: 4.9,
-                responseTime: '30min'
-            },
-            images: [
-                'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400&h=300&fit=crop'
-            ],
-            createdAt: '2024-01-13T09:20:00Z',
-            location: 'Paris 6ème',
-            views: 89,
-            likes: 25,
-            isFavorite: false,
-            isNegotiable: true,
-            condition: null
-        },
-        {
-            id: 4,
-            title: 'iPhone 14 Pro - Comme neuf',
-            description: 'iPhone 14 Pro 256GB couleur Deep Purple, acheté il y a 3 mois. État impeccable, toujours utilisé avec coque et verre trempé. Encore sous garantie Apple. Vendu avec boîte, chargeur et accessoires d\'origine.',
-            price: 950,
-            category: 'Électronique',
-            type: 'sell',
-            author: {
-                name: 'Julie Bernard',
-                university: 'École Normale Supérieure',
-                phone: '+33634567890',
-                avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=60&h=60&fit=crop&crop=face',
-                isStudent: true,
-                rating: 4.7,
-                responseTime: '1h'
-            },
-            images: [
-                'https://images.unsplash.com/photo-1592286638595-0df8be7d99ba?w=400&h=300&fit=crop',
-                'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=400&h=300&fit=crop'
-            ],
-            createdAt: '2024-01-11T14:20:00Z',
-            location: 'Paris 5ème',
-            views: 345,
-            likes: 28,
-            isFavorite: false,
-            isNegotiable: true,
-            condition: 'Comme neuf'
-        },
-        {
-            id: 5,
-            title: 'Livres de droit constitutionnel',
-            description: 'Collection complète de manuels de droit constitutionnel pour L1 à M2. Tous les ouvrages sont en parfait état, annotations utiles incluses. Idéal pour étudiants en droit. Possibilité de vente à l\'unité.',
-            price: 120,
-            category: 'Livres',
-            type: 'sell',
-            author: {
-                name: 'Alexandre Petit',
-                university: 'Sciences Po Paris',
-                phone: '+33676543210',
-                avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&crop=face',
-                isStudent: true,
-                rating: 4.3,
-                responseTime: '3h'
-            },
-            images: [
-                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop'
-            ],
-            createdAt: '2024-01-10T11:15:00Z',
-            location: 'Paris 7ème',
-            views: 67,
-            likes: 8,
-            isFavorite: false,
-            isNegotiable: true,
-            condition: 'Très bon'
-        },
-        {
-            id: 6,
-            title: 'Soirée étudiante - Fête de fin d\'examens',
-            description: 'Grande soirée étudiante pour célébrer la fin des examens ! Musique, boissons, ambiance garantie. Ouvert à tous les étudiants parisiens. Entrée libre avec carte étudiant. Rendez-vous ce samedi 20h.',
-            price: 0,
-            category: 'Événements',
-            type: 'event',
-            author: {
-                name: 'Tom Rousseau',
-                university: 'Université Lyon 1',
-                phone: '+33698765432',
-                avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face',
-                isStudent: true,
-                rating: 4.5,
-                responseTime: '1h'
-            },
-            images: [
-                'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=300&fit=crop'
-            ],
-            createdAt: '2024-01-12T18:00:00Z',
-            location: 'Paris 11ème',
-            views: 456,
-            likes: 89,
-            isFavorite: true,
-            isNegotiable: false,
-            condition: null
+    // Fetch announcements from API
+    const fetchAnnouncements = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements?status=active&with_interactions=true');
+            const data = await response.json();
+            
+            if (data.success) {
+                // Transform API data to match component expectations
+                const transformedAnnouncements = data.data.map(announcement => ({
+                    id: announcement.id,
+                    title: announcement.title,
+                    description: announcement.description,
+                    price: parseFloat(announcement.price),
+                    category: announcement.category?.name || 'Non classifié',
+                    type: announcement.type,
+                    author: {
+                        name: announcement.user?.name || 'Utilisateur anonyme',
+                        university: announcement.user?.university || null,
+                        phone: announcement.user?.phone || '+33000000000',
+                        avatar: announcement.user?.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=60&h=60&fit=crop&crop=face',
+                        isStudent: announcement.user?.is_student || false,
+                        rating: parseFloat(announcement.user?.rating) || 0,
+                        responseTime: '2h' // Default response time
+                    },
+                    images: announcement.images && announcement.images.length > 0 
+                        ? announcement.images 
+                        : ['https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=300&fit=crop'],
+                    createdAt: announcement.created_at,
+                    location: announcement.location || 'Non spécifié',
+                    views: announcement.views_count || announcement.views || 0,
+                    likes: announcement.likes_count || Math.floor(Math.random() * 50),
+                    isFavorite: announcement.is_liked || false,
+                    isNegotiable: true, // Default to negotiable
+                    condition: null // Not in API yet
+                }));
+                
+                setAnnouncements(transformedAnnouncements);
+                setFilteredAnnouncements(transformedAnnouncements);
+            } else {
+                console.error('Failed to fetch announcements:', data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     useEffect(() => {
-        setTimeout(() => {
-            setAnnouncements(sampleAnnouncements);
-            setFilteredAnnouncements(sampleAnnouncements);
-            setLoading(false);
-        }, 1000);
+        fetchAnnouncements();
     }, []);
 
     useEffect(() => {
@@ -234,6 +110,111 @@ const Announcements = () => {
     const handleWhatsAppContact = (author) => {
         const message = encodeURIComponent(`Salut ${author.name}! Je viens de voir ton annonce sur CampusVente et j'aimerais te contacter. 👋`);
         window.open(`https://wa.me/${author.phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    };
+
+    const toggleLike = async (id) => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${id}/like`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}` // Si auth requise
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Mettre à jour les états
+                setAnnouncements(prev => 
+                    prev.map(ann => 
+                        ann.id === id ? { 
+                            ...ann, 
+                            isFavorite: data.data.is_liked,
+                            likes: data.data.likes_count
+                        } : ann
+                    )
+                );
+                setFilteredAnnouncements(prev => 
+                    prev.map(ann => 
+                        ann.id === id ? { 
+                            ...ann, 
+                            isFavorite: data.data.is_liked,
+                            likes: data.data.likes_count
+                        } : ann
+                    )
+                );
+                
+                // Synchroniser avec localStorage pour les favoris
+                const savedFavorites = JSON.parse(localStorage.getItem(`favorites_${user.id}`) || '[]');
+                if (data.data.is_liked) {
+                    if (!savedFavorites.includes(id)) {
+                        savedFavorites.push(id);
+                    }
+                } else {
+                    const index = savedFavorites.indexOf(id);
+                    if (index > -1) {
+                        savedFavorites.splice(index, 1);
+                    }
+                }
+                localStorage.setItem(`favorites_${user.id}`, JSON.stringify(savedFavorites));
+            } else {
+                console.error('Erreur lors du like:', data.message);
+                // Fallback vers comportement local si API échoue
+                setAnnouncements(prev => 
+                    prev.map(ann => 
+                        ann.id === id ? { 
+                            ...ann, 
+                            isFavorite: !ann.isFavorite,
+                            likes: ann.isFavorite ? ann.likes - 1 : ann.likes + 1
+                        } : ann
+                    )
+                );
+                setFilteredAnnouncements(prev => 
+                    prev.map(ann => 
+                        ann.id === id ? { 
+                            ...ann, 
+                            isFavorite: !ann.isFavorite,
+                            likes: ann.isFavorite ? ann.likes - 1 : ann.likes + 1
+                        } : ann
+                    )
+                );
+            }
+        } catch (error) {
+            console.error('Erreur réseau lors du like:', error);
+            // Fallback vers comportement local
+            setAnnouncements(prev => 
+                prev.map(ann => 
+                    ann.id === id ? { 
+                        ...ann, 
+                        isFavorite: !ann.isFavorite,
+                        likes: ann.isFavorite ? ann.likes - 1 : ann.likes + 1
+                    } : ann
+                )
+            );
+            setFilteredAnnouncements(prev => 
+                prev.map(ann => 
+                    ann.id === id ? { 
+                        ...ann, 
+                        isFavorite: !ann.isFavorite,
+                        likes: ann.isFavorite ? ann.likes - 1 : ann.likes + 1
+                    } : ann
+                )
+            );
+        }
+    };
+
+    const recordView = async (announcementId) => {
+        try {
+            await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}/view`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        } catch (error) {
+            console.error('Erreur lors de l\'enregistrement de la vue:', error);
+        }
     };
 
     const toggleFavorite = (id) => {
@@ -294,10 +275,7 @@ const Announcements = () => {
                                 </p>
                             </div>
                             <div className="d-flex gap-2">
-                                <Button as={Link} to="/dashboard" className="btn-modern" variant="outline-primary">
-                                    📊 Dashboard
-                                </Button>
-                                <Button className="btn-modern btn-gradient" onClick={() => setShowCreateModal(true)}>
+                                <Button as={Link} to="/create-announcement" className="btn-modern btn-gradient">
                                     ➕ Publier une annonce
                                 </Button>
                             </div>
@@ -321,11 +299,9 @@ const Announcements = () => {
                     <Col md={3}>
                         <Form.Select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
                             <option value="all">Toutes les catégories</option>
-                            <option value="Électronique">📱 Électronique</option>
-                            <option value="Logement">🏠 Logement</option>
-                            <option value="Services">🛠️ Services</option>
-                            <option value="Livres">📚 Livres</option>
-                            <option value="Événements">🎉 Événements</option>
+                            {[...new Set(announcements.map(ann => ann.category))].map(category => (
+                                <option key={category} value={category}>{category}</option>
+                            ))}
                         </Form.Select>
                     </Col>
                     <Col md={3}>
@@ -359,7 +335,7 @@ const Announcements = () => {
                                             alt={announcement.title}
                                             className="card-img-top"
                                             style={{ height: '200px', objectFit: 'cover', cursor: 'pointer' }}
-                                            onClick={() => setSelectedAnnouncement(announcement)}
+                                            onClick={() => { setSelectedAnnouncement(announcement); recordView(announcement.id); }}
                                         />
                                         <div className="position-absolute top-0 start-0 m-2">
                                             <Badge bg="primary" className="me-1">
@@ -371,7 +347,7 @@ const Announcements = () => {
                                                 variant="outline-light" 
                                                 size="sm"
                                                 className="border-0 bg-white bg-opacity-75"
-                                                onClick={() => toggleFavorite(announcement.id)}
+                                                onClick={() => toggleLike(announcement.id)}
                                             >
                                                 {announcement.isFavorite ? '❤️' : '🤍'}
                                             </Button>
@@ -379,7 +355,7 @@ const Announcements = () => {
                                         {announcement.price > 0 && (
                                             <div className="position-absolute bottom-0 end-0 m-2">
                                                 <Badge className="price-badge" style={{background: 'var(--primary-gradient)'}}>
-                                                    {announcement.price}€
+                                                    {announcement.price.toLocaleString('fr-FR')} FCFA
                                                     {announcement.isNegotiable && <small> (négociable)</small>}
                                                 </Badge>
                                             </div>
@@ -419,7 +395,7 @@ const Announcements = () => {
                                             </div>
                                         </div>
 
-                                        <h6 className="fw-bold mb-2" style={{ cursor: 'pointer' }} onClick={() => setSelectedAnnouncement(announcement)}>
+                                        <h6 className="fw-bold mb-2" style={{ cursor: 'pointer' }} onClick={() => { setSelectedAnnouncement(announcement); recordView(announcement.id); }}>
                                             {announcement.title}
                                         </h6>
                                         <p className="text-muted mb-3" style={{ 
@@ -465,7 +441,7 @@ const Announcements = () => {
                                                 size="sm" 
                                                 variant="outline-primary"
                                                 className="btn-modern"
-                                                onClick={() => setSelectedAnnouncement(announcement)}
+                                                onClick={() => { setSelectedAnnouncement(announcement); recordView(announcement.id); }}
                                             >
                                                 👁️ Voir
                                             </Button>
@@ -517,7 +493,7 @@ const Announcements = () => {
                                         </Badge>
                                         {selectedAnnouncement.price > 0 && (
                                             <h3 className="fw-bold text-primary">
-                                                {selectedAnnouncement.price}€
+                                                {selectedAnnouncement.price.toLocaleString('fr-FR')} FCFA
                                                 {selectedAnnouncement.isNegotiable && (
                                                     <small className="text-muted"> (négociable)</small>
                                                 )}
@@ -582,7 +558,7 @@ const Announcements = () => {
                                         <Button 
                                             variant="outline-primary"
                                             className="btn-modern"
-                                            onClick={() => toggleFavorite(selectedAnnouncement.id)}
+                                            onClick={() => toggleLike(selectedAnnouncement.id)}
                                         >
                                             {selectedAnnouncement.isFavorite ? '❤️' : '🤍'}
                                         </Button>
@@ -627,7 +603,7 @@ const Announcements = () => {
                             <Row>
                                 <Col md={6}>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Prix (€)</Form.Label>
+                                        <Form.Label>Prix (FCFA)</Form.Label>
                                         <Form.Control type="number" placeholder="0" />
                                     </Form.Group>
                                 </Col>

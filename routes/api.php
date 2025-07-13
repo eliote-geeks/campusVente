@@ -6,6 +6,10 @@ use App\Http\Controllers\Api\UniversityController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\MeetingController;
+use App\Http\Controllers\Api\AnnouncementInteractionController;
+use App\Http\Controllers\Api\RecommendationController;
+use App\Http\Controllers\Api\UserRatingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -72,31 +76,6 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
-    // Rencontres
-    Route::get('/meetings', function () {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                [
-                    'id' => 1,
-                    'title' => 'Soirée étudiante - Rentrée 2024',
-                    'description' => 'Grande soirée pour célébrer la rentrée universitaire !',
-                    'date' => '2024-02-15T20:00:00Z',
-                    'location' => 'Bar Le Central, Yaoundé',
-                    'organizer' => [
-                        'name' => 'Marie Dubois',
-                        'avatar' => 'https://via.placeholder.com/50',
-                        'isStudent' => true,
-                        'university' => 'Université de Yaoundé I'
-                    ],
-                    'participants' => 28,
-                    'maxParticipants' => 50,
-                    'category' => 'party',
-                    'price' => 15
-                ]
-            ]
-        ]);
-    });
 
     // Universités
     Route::get('/universities', function () {
@@ -171,6 +150,34 @@ Route::prefix('v1')->group(function () {
     Route::get('/dashboard/announcements-by-type', [DashboardController::class, 'getAnnouncementsByType']);
     Route::get('/dashboard/monthly-growth', [DashboardController::class, 'getMonthlyGrowth']);
     Route::get('/dashboard/top-universities', [DashboardController::class, 'getTopUniversities']);
+    Route::get('/dashboard/meetings-by-type', [DashboardController::class, 'getMeetingsByType']);
+    Route::get('/dashboard/meetings-by-status', [DashboardController::class, 'getMeetingsByStatus']);
+
+    // Meetings management - temporarily public for testing
+    Route::get('/meetings', [MeetingController::class, 'index']);
+    Route::get('/meetings/{meeting}', [MeetingController::class, 'show']);
+    Route::post('/meetings', [MeetingController::class, 'store']);
+    Route::put('/meetings/{meeting}', [MeetingController::class, 'update']);
+    Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy']);
+    Route::post('/meetings/{meeting}/status', [MeetingController::class, 'updateStatus']);
+    Route::post('/meetings/{meeting}/join', [MeetingController::class, 'join']);
+    Route::post('/meetings/{meeting}/leave', [MeetingController::class, 'leave']);
+    Route::get('/meetings/{meeting}/participants', [MeetingController::class, 'participants']);
+    Route::put('/meetings/{meeting}/participants/{user}', [MeetingController::class, 'updateParticipantStatus']);
+    
+    // Likes et vues - accessible publiquement pour les vues, likes nécessitent auth
+    Route::post('/announcements/{announcement}/view', [AnnouncementInteractionController::class, 'recordView']);
+    Route::get('/announcements/{announcement}/interactions', [AnnouncementInteractionController::class, 'getInteractionStatus']);
+    Route::get('/announcements/popular', [AnnouncementInteractionController::class, 'getPopularAnnouncements']);
+    
+    // Recommandations - accessible publiquement
+    Route::get('/recommendations', [RecommendationController::class, 'getRecommendations']);
+    Route::get('/recommendations/trending', [RecommendationController::class, 'getTrendingAnnouncements']);
+    
+    // Système de notation - accessible publiquement
+    Route::get('/users/{user}/ratings', [UserRatingController::class, 'getUserRatings']);
+    Route::get('/users/top-rated', [UserRatingController::class, 'getTopRatedUsers']);
+    Route::get('/users/recommended', [UserRatingController::class, 'getRecommendedUsers']);
 });
 
 // Routes protégées (avec authentification)
@@ -200,19 +207,15 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         ]);
     });
 
-    Route::post('/meetings', function (Request $request) {
-        return response()->json([
-            'success' => true,
-            'message' => 'Rencontre créée avec succès',
-            'data' => [
-                'id' => rand(100, 999),
-                'title' => $request->title,
-                'description' => $request->description,
-                'date' => $request->date,
-                'location' => $request->location,
-                'createdAt' => now()->toISOString()
-            ]
-        ]);
-    });
-
+    // Likes (nécessite authentification)
+    Route::post('/announcements/{announcement}/like', [AnnouncementInteractionController::class, 'toggleLike']);
+    
+    // Recommandations personnalisées (nécessite authentification)
+    Route::get('/recommendations/personal', [RecommendationController::class, 'getRecommendations']);
+    Route::get('/recommendations/stats', [RecommendationController::class, 'getUserRecommendationStats']);
+    
+    // Notation des utilisateurs (nécessite authentification)
+    Route::post('/users/{user}/rate', [UserRatingController::class, 'rateUser']);
+    Route::get('/users/{user}/can-rate', [UserRatingController::class, 'canRateUser']);
+    Route::put('/ratings/{rating}', [UserRatingController::class, 'updateRating']);
 });
