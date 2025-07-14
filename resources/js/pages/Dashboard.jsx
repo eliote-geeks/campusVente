@@ -699,6 +699,15 @@ const Dashboard = () => {
         }
     };
 
+    const handleToggleAnnouncementStatus = async (announcement) => {
+        const newStatus = announcement.status === 'active' ? 'inactive' : 'active';
+        const action = newStatus === 'active' ? 'activer' : 'désactiver';
+        
+        if (!confirm(`Êtes-vous sûr de vouloir ${action} cette annonce ?`)) return;
+        
+        await handleUpdateAnnouncementStatus(announcement.id, newStatus);
+    };
+
     // Fonctions de gestion des universités
     const handleUniversityFormChange = (field, value) => {
         setUniversityForm(prev => ({ ...prev, [field]: value }));
@@ -1416,7 +1425,15 @@ const Dashboard = () => {
                                                     <small>📍 {announcement.location}</small>
                                                 </td>
                                                 <td>
-                                                    <div className="d-flex gap-2">
+                                                    <div className="d-flex gap-1">
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant={announcement.status === 'active' ? 'outline-warning' : 'outline-success'}
+                                                            onClick={() => handleToggleAnnouncementStatus(announcement)}
+                                                            title={announcement.status === 'active' ? 'Désactiver' : 'Activer'}
+                                                        >
+                                                            {announcement.status === 'active' ? '⏸️' : '▶️'}
+                                                        </Button>
                                                         <Button 
                                                             size="sm" 
                                                             variant="outline-primary"

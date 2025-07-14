@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\WelcomeNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -82,6 +83,14 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Envoyer notification de bienvenue
+        try {
+            $user->notify(new WelcomeNotification($user));
+        } catch (\Exception $e) {
+            // Log erreur mais continue l'inscription
+            \Log::warning('Erreur envoi notification bienvenue', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+        }
 
         return response()->json([
             'success' => true,

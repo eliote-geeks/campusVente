@@ -18,22 +18,41 @@ const MyAnnouncements = () => {
         const fetchMyAnnouncements = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements?user_id=${user.id}`, {
+                const token = localStorage.getItem('token');
+                
+                if (!token) {
+                    setErrorMessage('Token d\'authentification manquant. Veuillez vous reconnecter.');
+                    setLoading(false);
+                    return;
+                }
+
+                const response = await fetch('http://127.0.0.1:8000/api/v1/my-announcements', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Authorization': `Bearer ${token}`,
                         'Accept': 'application/json'
                     }
                 });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        setErrorMessage('Session expirée. Veuillez vous reconnecter.');
+                        localStorage.removeItem('token');
+                        return;
+                    }
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
                     setAnnouncements(data.data || []);
+                    setErrorMessage(''); // Clear previous errors
                 } else {
-                    setErrorMessage('Erreur lors du chargement des annonces');
+                    setErrorMessage(data.message || 'Erreur lors du chargement des annonces');
                 }
             } catch (error) {
                 console.error('Erreur lors de la récupération des annonces:', error);
-                setErrorMessage('Erreur lors du chargement des annonces');
+                setErrorMessage('Erreur lors du chargement des annonces: ' + error.message);
             } finally {
                 setLoading(false);
             }
@@ -41,18 +60,36 @@ const MyAnnouncements = () => {
 
         if (user?.id) {
             fetchMyAnnouncements();
+        } else {
+            setLoading(false);
+            setErrorMessage('Utilisateur non connecté');
         }
     }, [user?.id]);
 
     const handleDeleteAnnouncement = async () => {
         try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setErrorMessage('Token d\'authentification manquant. Veuillez vous reconnecter.');
+                return;
+            }
+
             const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
                 }
             });
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    setErrorMessage('Session expirée. Veuillez vous reconnecter.');
+                    localStorage.removeItem('token');
+                    return;
+                }
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
             
             const data = await response.json();
             
@@ -65,7 +102,7 @@ const MyAnnouncements = () => {
             }
         } catch (error) {
             console.error('Erreur lors de la suppression:', error);
-            setErrorMessage('Erreur lors de la suppression de l\'annonce');
+            setErrorMessage('Erreur lors de la suppression de l\'annonce: ' + error.message);
         } finally {
             setShowDeleteModal(false);
             setAnnouncementToDelete(null);
@@ -74,15 +111,30 @@ const MyAnnouncements = () => {
 
     const handleUpdateStatus = async (announcementId, newStatus) => {
         try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setErrorMessage('Token d\'authentification manquant. Veuillez vous reconnecter.');
+                return;
+            }
+
             const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}/status`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status: newStatus, user_id: user?.id })
             });
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    setErrorMessage('Session expirée. Veuillez vous reconnecter.');
+                    localStorage.removeItem('token');
+                    return;
+                }
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
             
             const data = await response.json();
             
@@ -101,7 +153,7 @@ const MyAnnouncements = () => {
             }
         } catch (error) {
             console.error('Erreur lors de la mise à jour:', error);
-            setErrorMessage('Erreur lors de la mise à jour du statut');
+            setErrorMessage('Erreur lors de la mise à jour du statut: ' + error.message);
         }
     };
 
@@ -221,10 +273,13 @@ const MyAnnouncements = () => {
                                 <Card className="card-modern h-100">
                                     <div className="position-relative">
                                         <img 
-                                            src={announcement.images?.[0] || 'https://via.placeholder.com/300x200'}
+                                            src={announcement.images?.[0] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=200&fit=crop'}
                                             alt={announcement.title}
                                             className="card-img-top"
                                             style={{ height: '200px', objectFit: 'cover' }}
+                                            onError={(e) => {
+                                                e.target.src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=200&fit=crop';
+                                            }}
                                         />
                                         <div className="position-absolute top-0 start-0 m-2">
                                             {getStatusBadge(announcement.status)}
@@ -328,6 +383,8 @@ const MyAnnouncements = () => {
                                         {/* Actions principales */}
                                         <div className="d-flex gap-1">
                                             <Button 
+                                                as={Link}
+                                                to={`/edit-announcement/${announcement.id}`}
                                                 size="sm" 
                                                 variant="outline-primary"
                                                 className="flex-fill"

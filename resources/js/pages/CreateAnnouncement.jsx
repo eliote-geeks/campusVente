@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, Alert, Spinner, Badge, ProgressBar, Tooltip, OverlayTrigger } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, Alert, Spinner, Badge, ProgressBar, Tooltip, OverlayTrigger, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import MediaUpload from '../components/MediaUpload.jsx';
 import './CreateAnnouncement.css';
 
 const CreateAnnouncement = () => {
@@ -23,10 +24,16 @@ const CreateAnnouncement = () => {
         price: '',
         type: 'sell',
         location: '',
+        phone: '',
         category_id: '',
         is_urgent: false,
-        images: []
+        is_promotional: false,
+        images: [],
+        media: []
     });
+
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [processingPayment, setProcessingPayment] = useState(false);
 
     // Simulation d'IA pour suggestions
     const aiSuggestions = {
@@ -63,6 +70,7 @@ const CreateAnnouncement = () => {
             price: "850000",
             type: "sell",
             location: "Yaoundé",
+            phone: "+237 690 123 456",
             category_id: "1",
             is_urgent: false
         },
@@ -72,6 +80,7 @@ const CreateAnnouncement = () => {
             price: "1200000",
             type: "sell",
             location: "Douala",
+            phone: "+237 655 789 012",
             category_id: "1",
             is_urgent: false
         },
@@ -81,6 +90,7 @@ const CreateAnnouncement = () => {
             price: "15000",
             type: "service",
             location: "Yaoundé",
+            phone: "+237 612 456 789",
             category_id: "3",
             is_urgent: false
         },
@@ -90,6 +100,7 @@ const CreateAnnouncement = () => {
             price: "100000",
             type: "buy",
             location: "Yaoundé",
+            phone: "+237 677 345 678",
             category_id: "2",
             is_urgent: true
         }
@@ -185,25 +196,66 @@ const CreateAnnouncement = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation basique
+        if (!formData.title || !formData.description || !formData.price || !formData.category_id || !formData.location || !formData.phone) {
+            setError('Tous les champs obligatoires doivent être remplis');
+            return;
+        }
+
+        // Si c'est une annonce promotionnelle, ouvrir le modal de paiement
+        if (formData.is_promotional) {
+            setShowPaymentModal(true);
+            return;
+        }
+
+        // Sinon, créer l'annonce directement
+        await createAnnouncement();
+    };
+
+    const createAnnouncement = async () => {
         setLoading(true);
         setError('');
         setSuccess('');
 
-        // Validation basique
-        if (!formData.title || !formData.description || !formData.price || !formData.category_id || !formData.location) {
-            setError('Tous les champs obligatoires doivent être remplis');
-            setLoading(false);
-            return;
-        }
-
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements-create', {
+            // Préparer FormData pour l'upload de fichiers
+            const formDataToSend = new FormData();
+            
+            // Ajouter les champs de base
+            formDataToSend.append('title', formData.title);
+            formDataToSend.append('description', formData.description);
+            formDataToSend.append('price', formData.price);
+            formDataToSend.append('type', formData.type);
+            formDataToSend.append('location', formData.location);
+            formDataToSend.append('phone', formData.phone);
+            formDataToSend.append('category_id', formData.category_id);
+            formDataToSend.append('is_urgent', formData.is_urgent ? '1' : '0');
+            formDataToSend.append('is_promotional', formData.is_promotional ? '1' : '0');
+            
+            // Ajouter les fichiers médias
+            if (formData.media && formData.media.length > 0) {
+                formData.media.forEach((mediaItem, index) => {
+                    if (mediaItem.file) {
+                        formDataToSend.append('media_files[]', mediaItem.file);
+                    }
+                });
+            }
+
+            // Récupérer le token d'authentification
+            const token = localStorage.getItem('token');
+            const headers = {
+                'Accept': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements-create-with-files', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(formData)
+                headers: headers,
+                body: formDataToSend
             });
 
             const contentType = response.headers.get('content-type');
@@ -218,7 +270,11 @@ const CreateAnnouncement = () => {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                setSuccess('Annonce créée avec succès ! Redirection en cours...');
+                if (formData.is_promotional) {
+                    setSuccess('Annonce promotionnelle créée avec succès ! Une notification a été envoyée à tous les utilisateurs. Redirection en cours...');
+                } else {
+                    setSuccess('Annonce créée avec succès ! Redirection en cours...');
+                }
                 setTimeout(() => {
                     navigate('/announcements');
                 }, 2000);
@@ -233,6 +289,74 @@ const CreateAnnouncement = () => {
         }
     };
 
+    const handlePayment = async () => {
+        setProcessingPayment(true);
+        
+        try {
+            // Simulation du paiement - pour l'instant on valide tout automatiquement
+            const token = localStorage.getItem('token');
+            const paymentHeaders = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            };
+            
+            if (token) {
+                paymentHeaders['Authorization'] = `Bearer ${token}`;
+            }
+
+            const paymentResponse = await fetch('http://127.0.0.1:8000/api/v1/payments/promotional', {
+                method: 'POST',
+                headers: paymentHeaders,
+                body: JSON.stringify({
+                    amount: 500,
+                    currency: 'FCFA',
+                    type: 'promotional_announcement',
+                    user_id: user.id
+                })
+            });
+
+            // Pour l'instant, on considère que le paiement réussit toujours
+            if (true) { // paymentResponse.ok
+                setShowPaymentModal(false);
+                // Créer l'annonce après le paiement réussi
+                await createAnnouncement();
+                
+                // Envoyer une notification à tous les utilisateurs
+                await sendNotificationToAllUsers();
+            }
+        } catch (error) {
+            console.error('Erreur lors du paiement:', error);
+            setError('Erreur lors du traitement du paiement');
+        } finally {
+            setProcessingPayment(false);
+        }
+    };
+
+    const sendNotificationToAllUsers = async () => {
+        try {
+            await fetch('http://127.0.0.1:8000/api/v1/notifications/broadcast', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: '🌟 Nouvelle annonce promotionnelle !',
+                    message: `${user.name} a publié une nouvelle annonce promotionnelle : "${formData.title}"`,
+                    type: 'promotional_announcement',
+                    data: {
+                        announcement_title: formData.title,
+                        announcement_type: formData.type,
+                        price: formData.price,
+                        location: formData.location
+                    }
+                })
+            });
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi des notifications:', error);
+        }
+    };
+
     const resetForm = () => {
         setFormData({
             title: '',
@@ -240,9 +364,12 @@ const CreateAnnouncement = () => {
             price: '',
             type: 'sell',
             location: '',
+            phone: '',
             category_id: '',
             is_urgent: false,
-            images: []
+            is_promotional: false,
+            images: [],
+            media: []
         });
         setError('');
         setSuccess('');
@@ -499,6 +626,31 @@ const CreateAnnouncement = () => {
                                                 />
                                             </Form.Group>
                                         </Col>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3 form-group-enhanced">
+                                                <Form.Label className="form-label-enhanced">
+                                                    Numéro de téléphone *
+                                                    <OverlayTrigger
+                                                        placement="right"
+                                                        overlay={<Tooltip>Numéro pour contact WhatsApp</Tooltip>}
+                                                    >
+                                                        <span className="ms-2">📱</span>
+                                                    </OverlayTrigger>
+                                                </Form.Label>
+                                                <Form.Control
+                                                    type="tel"
+                                                    name="phone"
+                                                    value={formData.phone}
+                                                    onChange={handleChange}
+                                                    placeholder="Ex: +237 690 123 456"
+                                                    required
+                                                    className="form-control-enhanced"
+                                                />
+                                                <Form.Text className="text-muted">
+                                                    Ce numéro sera utilisé pour les contacts WhatsApp
+                                                </Form.Text>
+                                            </Form.Group>
+                                        </Col>
                                     </Row>
 
                                     <Form.Group className="mb-3">
@@ -530,16 +682,42 @@ const CreateAnnouncement = () => {
                                         />
                                     </Form.Group>
 
-                                    <Form.Group className="mb-4">
-                                        <Form.Check
-                                            type="checkbox"
-                                            name="is_urgent"
-                                            checked={formData.is_urgent}
-                                            onChange={handleChange}
-                                            label="🚨 Annonce urgente"
-                                            className="form-check-enhanced"
-                                        />
-                                    </Form.Group>
+                                    {/* Upload de médias */}
+                                    <MediaUpload
+                                        media={formData.media}
+                                        onMediaChange={(newMedia) => setFormData(prev => ({ ...prev, media: newMedia }))}
+                                        maxFiles={8}
+                                    />
+
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-4">
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    name="is_urgent"
+                                                    checked={formData.is_urgent}
+                                                    onChange={handleChange}
+                                                    label="🚨 Annonce urgente"
+                                                    className="form-check-enhanced"
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-4">
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    name="is_promotional"
+                                                    checked={formData.is_promotional}
+                                                    onChange={handleChange}
+                                                    label="🌟 Annonce promotionnelle (+500 FCFA)"
+                                                    className="form-check-enhanced"
+                                                />
+                                                <Form.Text className="text-muted">
+                                                    Les annonces promotionnelles sont mises en avant et une notification est envoyée à tous les utilisateurs
+                                                </Form.Text>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
 
                                     <div className="form-actions">
                                         <Button 
@@ -561,6 +739,8 @@ const CreateAnnouncement = () => {
                                                     <Spinner size="sm" className="me-2" />
                                                     Création...
                                                 </>
+                                            ) : formData.is_promotional ? (
+                                                '💳 Payer et créer l\'annonce (500 FCFA)'
                                             ) : (
                                                 '🚀 Créer l\'annonce'
                                             )}
@@ -569,6 +749,77 @@ const CreateAnnouncement = () => {
                                 </Form>
                             </Card.Body>
                         </Card>
+
+                        {/* Modal de paiement pour annonce promotionnelle */}
+                        <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+                            <Modal.Header closeButton>
+                                <Modal.Title>💳 Paiement Annonce Promotionnelle</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body>
+                                <div className="text-center">
+                                    <div className="mb-4">
+                                        <h4 className="text-primary">🌟 Annonce Promotionnelle</h4>
+                                        <p className="text-muted">
+                                            Votre annonce sera mise en avant et une notification sera envoyée à tous les utilisateurs de la plateforme.
+                                        </p>
+                                    </div>
+
+                                    <Card className="border-primary mb-4">
+                                        <Card.Body>
+                                            <h6 className="fw-bold mb-3">Résumé de votre annonce :</h6>
+                                            <div className="text-start">
+                                                <p><strong>Titre :</strong> {formData.title}</p>
+                                                <p><strong>Prix :</strong> {formData.price} FCFA</p>
+                                                <p><strong>Localisation :</strong> {formData.location}</p>
+                                            </div>
+                                        </Card.Body>
+                                    </Card>
+
+                                    <div className="payment-details">
+                                        <Row className="align-items-center justify-content-center">
+                                            <Col md={8}>
+                                                <div className="d-flex justify-content-between border-top pt-3">
+                                                    <span>Frais de promotion :</span>
+                                                    <strong className="text-primary">500 FCFA</strong>
+                                                </div>
+                                            </Col>
+                                        </Row>
+                                    </div>
+
+                                    <Alert variant="info" className="mt-3">
+                                        <small>
+                                            <strong>📢 Avantages :</strong> Votre annonce apparaîtra en première position, 
+                                            aura un badge spécial "Promotionnelle" et tous les utilisateurs recevront une notification.
+                                        </small>
+                                    </Alert>
+
+                                    <Alert variant="success" className="mt-2">
+                                        <small>
+                                            <strong>✅ Paiement automatique :</strong> Pour le moment, tous les paiements sont validés automatiquement à des fins de test.
+                                        </small>
+                                    </Alert>
+                                </div>
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <Button variant="secondary" onClick={() => setShowPaymentModal(false)} disabled={processingPayment}>
+                                    Annuler
+                                </Button>
+                                <Button 
+                                    variant="primary" 
+                                    onClick={handlePayment}
+                                    disabled={processingPayment}
+                                >
+                                    {processingPayment ? (
+                                        <>
+                                            <Spinner size="sm" className="me-2" />
+                                            Traitement...
+                                        </>
+                                    ) : (
+                                        '💳 Confirmer le paiement (500 FCFA)'
+                                    )}
+                                </Button>
+                            </Modal.Footer>
+                        </Modal>
                     </Col>
                 </Row>
             </Container>

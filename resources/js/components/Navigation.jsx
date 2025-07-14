@@ -2,12 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, Badge, Dropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { notificationsAPI } from '../services/api.js';
+import Avatar from './Avatar.jsx';
 
 const Navigation = () => {
     const { user, isAuthenticated, logout, updateUser } = useAuth();
     const navigate = useNavigate();
     const [userProfile, setUserProfile] = useState(null);
     const [notificationCount, setNotificationCount] = useState(0);
+
+    // Charger le nombre de notifications non lues
+    useEffect(() => {
+        const fetchNotificationCount = async () => {
+            if (isAuthenticated && user) {
+                try {
+                    const response = await notificationsAPI.getAll();
+                    // Note: axios interceptor returns response.data directly
+                    if (response.success) {
+                        setNotificationCount(response.data.unread_count || 0);
+                    }
+                } catch (error) {
+                    console.error('Erreur lors du chargement du compteur de notifications:', error?.response?.data?.message || error?.message || error);
+                    // En cas d'erreur, garder le compteur à 0
+                    setNotificationCount(0);
+                }
+            } else {
+                setNotificationCount(0);
+            }
+        };
+
+        fetchNotificationCount();
+        
+        // Mettre à jour toutes les 30 secondes
+        const interval = setInterval(fetchNotificationCount, 30000);
+        return () => clearInterval(interval);
+    }, [isAuthenticated, user]);
 
     // Récupérer les vraies informations utilisateur depuis la BD
     useEffect(() => {
@@ -94,11 +123,11 @@ const Navigation = () => {
                                     id="dropdown-basic"
                                     className="btn-modern d-flex align-items-center"
                                 >
-                                    <img 
-                                        src={currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
-                                        alt="Profile" 
-                                        className="rounded-circle me-2"
-                                        style={{width: '32px', height: '32px', objectFit: 'cover'}}
+                                    <Avatar
+                                        src={currentUser?.avatar}
+                                        name={currentUser?.name}
+                                        size={32}
+                                        className="me-2"
                                     />
                                     <div className="d-flex flex-column align-items-start me-2">
                                         <span className="fw-semibold">
@@ -125,11 +154,11 @@ const Navigation = () => {
                                 <Dropdown.Menu>
                                     <Dropdown.Header>
                                         <div className="text-center">
-                                            <img 
-                                                src={currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face'}
-                                                alt="Profile" 
-                                                className="rounded-circle mb-2"
-                                                style={{width: '50px', height: '50px', objectFit: 'cover'}}
+                                            <Avatar
+                                                src={currentUser?.avatar}
+                                                name={currentUser?.name}
+                                                size={50}
+                                                className="mb-2"
                                             />
                                             <div className="fw-bold">{currentUser?.name || 'Utilisateur'}</div>
                                             <small className="text-muted">{currentUser?.email}</small>

@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\AnnouncementInteractionController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\UserRatingController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -29,53 +32,6 @@ Route::prefix('v1')->group(function () {
     // Authentification
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
-
-    // Annonces
-    Route::get('/announcements', function () {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                [
-                    'id' => 1,
-                    'title' => 'iPhone 13 Pro Max',
-                    'description' => 'iPhone 13 Pro Max 128GB, couleur bleu sierra, excellent état.',
-                    'price' => 850,
-                    'category' => 'electronics',
-                    'images' => ['https://via.placeholder.com/300x200'],
-                    'author' => [
-                        'name' => 'Marie Laurent',
-                        'avatar' => 'https://via.placeholder.com/50',
-                        'isStudent' => true,
-                        'university' => 'Université de Yaoundé I',
-                        'rating' => 4.8
-                    ],
-                    'location' => 'Yaoundé',
-                    'createdAt' => '2024-01-15T10:00:00Z',
-                    'views' => 124,
-                    'likes' => 28,
-                    'urgent' => true
-                ],
-                [
-                    'id' => 2,
-                    'title' => 'Cours particuliers d\'anglais',
-                    'description' => 'Professeur d\'anglais natif propose cours particuliers tous niveaux.',
-                    'price' => 30,
-                    'category' => 'services',
-                    'author' => [
-                        'name' => 'James Wilson',
-                        'avatar' => 'https://via.placeholder.com/50',
-                        'isStudent' => false,
-                        'rating' => 4.9
-                    ],
-                    'location' => 'Douala',
-                    'createdAt' => '2024-01-14T15:30:00Z',
-                    'views' => 67,
-                    'likes' => 15
-                ]
-            ]
-        ]);
-    });
-
 
     // Universités
     Route::get('/universities', function () {
@@ -130,18 +86,25 @@ Route::prefix('v1')->group(function () {
     
     // Announcement management - temporarily public for testing (route alternative)
     Route::post('/announcements-create', [AnnouncementController::class, 'store']);
+    Route::post('/announcements-create-with-files', [AnnouncementController::class, 'storeWithFiles']);
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+    Route::post('/announcements/{announcement}/update-with-files', [AnnouncementController::class, 'updateWithFiles']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
     Route::post('/announcements/{announcement}/status', [AnnouncementController::class, 'updateStatus']);
 
     // Users management - temporarily public for testing
     Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users-stats', [UserController::class, 'getStats']);
+    
+    // User rating routes (must come before /users/{user})
+    Route::get('/users/top-rated', [UserRatingController::class, 'getTopRatedUsers']);
+    Route::get('/users/recommended', [UserRatingController::class, 'getRecommendedUsers']);
+    
     Route::get('/users/{user}', [UserController::class, 'show']);
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{user}', [UserController::class, 'update']);
     Route::delete('/users/{user}', [UserController::class, 'destroy']);
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus']);
-    Route::get('/users-stats', [UserController::class, 'getStats']);
 
     // Dashboard statistics
     Route::get('/dashboard/overview', [DashboardController::class, 'getOverview']);
@@ -176,8 +139,64 @@ Route::prefix('v1')->group(function () {
     
     // Système de notation - accessible publiquement
     Route::get('/users/{user}/ratings', [UserRatingController::class, 'getUserRatings']);
-    Route::get('/users/top-rated', [UserRatingController::class, 'getTopRatedUsers']);
-    Route::get('/users/recommended', [UserRatingController::class, 'getRecommendedUsers']);
+    
+    // Test endpoints - temporairement publics
+    Route::get('/my-announcements', [AnnouncementController::class, 'getUserAnnouncements']);
+    Route::get('/my-given-ratings', [UserRatingController::class, 'getGivenRatings']);
+    
+    // Paiements - temporairement publics pour les tests
+    Route::post('/payments/promotional', [PaymentController::class, 'processPromotionalPayment']);
+    Route::get('/payments/user/{userId?}', [PaymentController::class, 'getUserPayments']);
+    Route::get('/payments/stats', [PaymentController::class, 'getPaymentStats']);
+    Route::put('/payments/{paymentId}/validate', [PaymentController::class, 'validatePayment']);
+    
+    // Notifications publiques (broadcast admin)
+    Route::post('/notifications/broadcast', [NotificationController::class, 'broadcastNotification']);
+    
+    // Test endpoint pour vérifier les notifications
+    Route::get('/test-notifications/{userId}', function($userId) {
+        try {
+            $user = \App\Models\User::find($userId);
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé']);
+            }
+            
+            $notifications = $user->notifications()
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($notification) {
+                    return [
+                        'id' => $notification->id,
+                        'title' => $notification->data['title'] ?? 'Notification',
+                        'message' => $notification->data['message'] ?? '',
+                        'type' => $notification->data['type'] ?? 'general',
+                        'priority' => $notification->data['priority'] ?? 'medium',
+                        'icon' => $notification->data['icon'] ?? 'fas fa-bell',
+                        'color' => $notification->data['color'] ?? 'primary',
+                        'url' => $notification->data['url'] ?? '/notifications',
+                        'read' => !is_null($notification->read_at),
+                        'created_at' => $notification->created_at->format('Y-m-d H:i:s'),
+                        'data' => $notification->data['data'] ?? []
+                    ];
+                });
+
+            $unreadCount = $user->unreadNotifications()->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'notifications' => $notifications,
+                    'unread_count' => $unreadCount,
+                    'total_count' => $notifications->count()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur: ' . $e->getMessage()
+            ], 500);
+        }
+    });
 });
 
 // Routes protégées (avec authentification)
@@ -192,20 +211,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         return $request->user();
     });
 
-    Route::post('/announcements', function (Request $request) {
-        return response()->json([
-            'success' => true,
-            'message' => 'Annonce créée avec succès',
-            'data' => [
-                'id' => rand(100, 999),
-                'title' => $request->title,
-                'description' => $request->description,
-                'price' => $request->price,
-                'category' => $request->category,
-                'createdAt' => now()->toISOString()
-            ]
-        ]);
-    });
+    Route::post('/announcements', [AnnouncementController::class, 'storeWithFiles']);
 
     // Likes (nécessite authentification)
     Route::post('/announcements/{announcement}/like', [AnnouncementInteractionController::class, 'toggleLike']);
@@ -218,4 +224,28 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::post('/users/{user}/rate', [UserRatingController::class, 'rateUser']);
     Route::get('/users/{user}/can-rate', [UserRatingController::class, 'canRateUser']);
     Route::put('/ratings/{rating}', [UserRatingController::class, 'updateRating']);
+    
+    // Gestion des avatars (nécessite authentification)
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
+    Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar']);
+    Route::get('/profile/avatar/{userId?}', [ProfileController::class, 'getAvatar']);
+    
+    // Notifications utilisateur (protégées)
+    Route::post('/notifications/user/{userId}', [NotificationController::class, 'sendNotificationToUser']);
+    Route::get('/notifications', [NotificationController::class, 'getUserNotifications']);
+    Route::get('/notifications/user/{userId?}', [NotificationController::class, 'getUserNotifications']);
+    Route::put('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::put('/notifications/user/{userId?}/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{notificationId}', [NotificationController::class, 'deleteNotification']);
+    Route::get('/notifications/stats', [NotificationController::class, 'getNotificationStats']);
+    
+    // Autres endpoints protégés
+    Route::get('/users/{userId}/announcements', [AnnouncementController::class, 'getUserAnnouncements']);
+    
+    // Gestion des annonces utilisateur
+    Route::get('/my-announcements', [AnnouncementController::class, 'getUserAnnouncements']);
+    Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+    Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+    Route::post('/announcements/{announcement}/status', [AnnouncementController::class, 'updateStatus']);
 });

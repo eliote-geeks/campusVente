@@ -19,6 +19,9 @@ import Students from './pages/Students.jsx';
 import StudentProfile from './pages/StudentProfile.jsx';
 import MyAnnouncements from './pages/MyAnnouncements.jsx';
 import Favorites from './pages/Favorites.jsx';
+import MyRatings from './pages/MyRatings.jsx';
+import Notifications from './pages/Notifications.jsx';
+import EditAnnouncement from './pages/EditAnnouncement.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 
 // Composant pour protéger les routes privées
@@ -161,6 +164,30 @@ const AppContent = () => {
                             element={
                                 <PrivateRoute>
                                     <Favorites />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/my-ratings" 
+                            element={
+                                <PrivateRoute>
+                                    <MyRatings />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/notifications" 
+                            element={
+                                <PrivateRoute>
+                                    <Notifications />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/edit-announcement/:id" 
+                            element={
+                                <PrivateRoute>
+                                    <EditAnnouncement />
                                 </PrivateRoute>
                             } 
                         />

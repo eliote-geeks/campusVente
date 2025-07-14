@@ -101,9 +101,34 @@ export const usersAPI = {
 };
 
 export const notificationsAPI = {
-    getAll: () => api.get('/notifications'),
+    getAll: () => {
+        try {
+            // Temporairement utiliser l'endpoint de test avec l'ID utilisateur depuis le localStorage
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const userId = user.id || 1;
+            
+            // Vérifier si l'utilisateur existe
+            if (!userId) {
+                return Promise.resolve({
+                    success: false,
+                    message: 'Utilisateur non connecté',
+                    data: { notifications: [], unread_count: 0, total_count: 0 }
+                });
+            }
+            
+            return api.get(`/test-notifications/${userId}`);
+        } catch (error) {
+            console.error('Erreur lors de la récupération des notifications:', error);
+            return Promise.resolve({
+                success: false,
+                message: 'Erreur lors de la récupération des notifications',
+                data: { notifications: [], unread_count: 0, total_count: 0 }
+            });
+        }
+    },
     markAsRead: (id) => api.put(`/notifications/${id}/read`),
     markAllAsRead: () => api.put('/notifications/read-all'),
+    delete: (id) => api.delete(`/notifications/${id}`),
 };
 
 // Utilitaires pour la gestion du token et de l'utilisateur

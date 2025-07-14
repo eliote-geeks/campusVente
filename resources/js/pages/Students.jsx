@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, InputGroup, Badge, Modal, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import Avatar from '../components/Avatar.jsx';
 
 const Students = () => {
     const { user } = useAuth();
@@ -292,11 +293,11 @@ const Students = () => {
                                         <Col key={student.id} md={4}>
                                             <Card className="card-modern border-primary">
                                                 <Card.Body className="text-center p-3">
-                                                    <img 
-                                                        src={student.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=60&h=60&fit=crop&crop=face'} 
-                                                        alt={student.name}
-                                                        className="rounded-circle mb-2"
-                                                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                                                    <Avatar
+                                                        src={student.avatar}
+                                                        name={student.name}
+                                                        size={50}
+                                                        className="mb-2"
                                                     />
                                                     <h6 className="fw-bold mb-1">{student.name}</h6>
                                                     <div className="d-flex justify-content-center align-items-center gap-2 mb-2">
@@ -340,11 +341,11 @@ const Students = () => {
                                     <Card.Body className="p-4">
                                         {/* Profil étudiant */}
                                         <div className="text-center mb-3">
-                                            <img 
-                                                src={student.avatar} 
-                                                alt={`${student.firstName} ${student.lastName}`}
-                                                className="rounded-circle mb-3"
-                                                style={{ width: '80px', height: '80px', objectFit: 'cover' }}
+                                            <Avatar
+                                                src={student.avatar}
+                                                name={`${student.firstName} ${student.lastName}`}
+                                                size={80}
+                                                className="mb-3"
                                             />
                                             <h5 className="fw-bold mb-1">
                                                 {student.firstName} {student.lastName}
@@ -488,11 +489,11 @@ const Students = () => {
                         <Modal.Body>
                             <Row>
                                 <Col md={4} className="text-center">
-                                    <img 
-                                        src={selectedStudent.avatar} 
-                                        alt={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
-                                        className="rounded-circle mb-3"
-                                        style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                                    <Avatar
+                                        src={selectedStudent.avatar}
+                                        name={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
+                                        size={120}
+                                        className="mb-3"
                                     />
                                     <h4 className="fw-bold">
                                         {selectedStudent.firstName} {selectedStudent.lastName}

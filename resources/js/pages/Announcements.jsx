@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, InputGroup, Badge, Modal } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import MediaGallery from '../components/MediaGallery.jsx';
 
 const Announcements = () => {
     const { user } = useAuth();
@@ -12,24 +13,31 @@ const Announcements = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
+    const [filterStatus, setFilterStatus] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Fetch announcements from API
     const fetchAnnouncements = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements?status=active&with_interactions=true');
+            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements?with_interactions=true');
             const data = await response.json();
             
             if (data.success) {
+                // Debug: Afficher les données reçues
+                console.log('Données API reçues (Announcements):', data.data);
+                
                 // Transform API data to match component expectations
-                const transformedAnnouncements = data.data.map(announcement => ({
+                const transformedAnnouncements = data.data.map(announcement => {
+                    console.log('Utilisateur de l\'annonce (Announcements):', announcement.user);
+                    return {
                     id: announcement.id,
                     title: announcement.title,
                     description: announcement.description,
                     price: parseFloat(announcement.price),
                     category: announcement.category?.name || 'Non classifié',
                     type: announcement.type,
+                    status: announcement.status,
                     author: {
                         name: announcement.user?.name || 'Utilisateur anonyme',
                         university: announcement.user?.university || null,
@@ -39,17 +47,17 @@ const Announcements = () => {
                         rating: parseFloat(announcement.user?.rating) || 0,
                         responseTime: '2h' // Default response time
                     },
-                    images: announcement.images && announcement.images.length > 0 
-                        ? announcement.images 
-                        : ['https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=300&fit=crop'],
+                    images: announcement.images || [],
+                    media: announcement.media || [],
                     createdAt: announcement.created_at,
                     location: announcement.location || 'Non spécifié',
                     views: announcement.views_count || announcement.views || 0,
-                    likes: announcement.likes_count || Math.floor(Math.random() * 50),
+                    likes: announcement.likes_count || announcement.likes || 0,
                     isFavorite: announcement.is_liked || false,
                     isNegotiable: true, // Default to negotiable
                     condition: null // Not in API yet
-                }));
+                    };
+                });
                 
                 setAnnouncements(transformedAnnouncements);
                 setFilteredAnnouncements(transformedAnnouncements);
@@ -85,6 +93,11 @@ const Announcements = () => {
             filtered = filtered.filter(ann => ann.category === filterCategory);
         }
 
+        // Filtre par statut
+        if (filterStatus !== 'all') {
+            filtered = filtered.filter(ann => ann.status === filterStatus);
+        }
+
         // Tri
         switch (sortBy) {
             case 'newest':
@@ -105,7 +118,7 @@ const Announcements = () => {
         }
 
         setFilteredAnnouncements(filtered);
-    }, [searchTerm, filterCategory, sortBy, announcements]);
+    }, [searchTerm, filterCategory, filterStatus, sortBy, announcements]);
 
     const handleWhatsAppContact = (author) => {
         const message = encodeURIComponent(`Salut ${author.name}! Je viens de voir ton annonce sur CampusVente et j'aimerais te contacter. 👋`);
@@ -304,6 +317,15 @@ const Announcements = () => {
                             ))}
                         </Form.Select>
                     </Col>
+                    <Col md={2}>
+                        <Form.Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                            <option value="all">Tous les statuts</option>
+                            <option value="active">Actives</option>
+                            <option value="paused">En pause</option>
+                            <option value="sold">Vendues</option>
+                            <option value="expired">Expirées</option>
+                        </Form.Select>
+                    </Col>
                     <Col md={3}>
                         <Form.Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                             <option value="newest">Plus récentes</option>
@@ -330,17 +352,25 @@ const Announcements = () => {
                             <Col key={announcement.id} md={6} lg={4}>
                                 <Card className="card-modern h-100 announcement-card">
                                     <div className="position-relative">
-                                        <img 
-                                            src={announcement.images[0]} 
-                                            alt={announcement.title}
-                                            className="card-img-top"
-                                            style={{ height: '200px', objectFit: 'cover', cursor: 'pointer' }}
-                                            onClick={() => { setSelectedAnnouncement(announcement); recordView(announcement.id); }}
-                                        />
+                                        <div style={{ height: '200px' }}>
+                                            <MediaGallery
+                                                media={announcement.media}
+                                                images={announcement.images}
+                                                title={announcement.title}
+                                                onImageClick={() => { setSelectedAnnouncement(announcement); recordView(announcement.id); }}
+                                            />
+                                        </div>
                                         <div className="position-absolute top-0 start-0 m-2">
                                             <Badge bg="primary" className="me-1">
                                                 {getTypeIcon(announcement.type)} {announcement.category}
                                             </Badge>
+                                            {announcement.status !== 'active' && (
+                                                <Badge bg={announcement.status === 'sold' ? 'secondary' : announcement.status === 'paused' ? 'warning' : 'danger'}>
+                                                    {announcement.status === 'sold' ? '✅ Vendue' : 
+                                                     announcement.status === 'paused' ? '⏸️ En pause' : 
+                                                     announcement.status === 'expired' ? '⏰ Expirée' : announcement.status}
+                                                </Badge>
+                                            )}
                                         </div>
                                         <div className="position-absolute top-0 end-0 m-2">
                                             <Button 
@@ -464,27 +494,13 @@ const Announcements = () => {
                         <Modal.Body>
                             <Row>
                                 <Col md={6}>
-                                    <div className="mb-3">
-                                        <img 
-                                            src={selectedAnnouncement.images[0]} 
-                                            alt={selectedAnnouncement.title}
-                                            className="img-fluid rounded"
-                                            style={{ width: '100%', height: '300px', objectFit: 'cover' }}
+                                    <div className="mb-3" style={{ height: '300px' }}>
+                                        <MediaGallery
+                                            media={selectedAnnouncement.media}
+                                            images={selectedAnnouncement.images}
+                                            title={selectedAnnouncement.title}
                                         />
                                     </div>
-                                    {selectedAnnouncement.images.length > 1 && (
-                                        <div className="d-flex gap-2">
-                                            {selectedAnnouncement.images.slice(1).map((img, index) => (
-                                                <img 
-                                                    key={index}
-                                                    src={img} 
-                                                    alt={`${selectedAnnouncement.title} ${index + 2}`}
-                                                    className="rounded"
-                                                    style={{ width: '80px', height: '80px', objectFit: 'cover' }}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
                                 </Col>
                                 <Col md={6}>
                                     <div className="mb-3">

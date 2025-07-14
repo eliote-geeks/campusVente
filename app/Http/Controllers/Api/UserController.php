@@ -96,22 +96,35 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(User $user)
+    public function show($userId)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $user
-        ]);
+        try {
+            $user = User::findOrFail($userId);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $user
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non trouvé',
+                'error' => 'User not found'
+            ], 404);
+        }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, $userId)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+        try {
+            $user = User::findOrFail($userId);
+            
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
             'university' => 'nullable|string|max:255',
             'study_level' => 'nullable|string|max:100',
@@ -143,11 +156,18 @@ class UserController extends Controller
 
         $user->update($updateData);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Utilisateur mis à jour avec succès',
-            'data' => $user
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Utilisateur mis à jour avec succès',
+                'data' => $user
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non trouvé',
+                'error' => 'User not found'
+            ], 404);
+        }
     }
 
     /**

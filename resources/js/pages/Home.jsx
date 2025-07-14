@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Button, Form, Badge, Spinner, InputGroup } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import MediaGallery from '../components/MediaGallery.jsx';
 
 const Home = () => {
     const { user } = useAuth();
@@ -37,12 +38,17 @@ const Home = () => {
             if (page === 1) setLoading(true);
             else setLoadingMore(true);
 
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements?status=active&page=${page}&per_page=10&with_interactions=true`);
+            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements?page=${page}&per_page=10&with_interactions=true`);
             const data = await response.json();
             
             if (data.success) {
+                // Debug: Afficher les données reçues
+                console.log('Données API reçues:', data.data);
+                
                 // Transform API data to match component expectations
-                const transformedOffers = data.data.map(announcement => ({
+                const transformedOffers = data.data.map(announcement => {
+                    console.log('Utilisateur de l\'annonce:', announcement.user);
+                    return {
                     id: announcement.id,
                     author: {
                         name: announcement.user?.name || 'Utilisateur anonyme',
@@ -58,15 +64,19 @@ const Home = () => {
                     category: announcement.category?.name || 'Non classifié',
                     image: announcement.images && announcement.images.length > 0 
                         ? announcement.images[0] 
-                        : 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=300&fit=crop',
+                        : null,
+                    images: announcement.images || [],
+                    media: announcement.media || [],
                     createdAt: announcement.created_at,
                     type: announcement.type,
+                    status: announcement.status,
                     views: announcement.views_count || announcement.views || 0,
-                    likes: announcement.likes_count || Math.floor(Math.random() * 50),
+                    likes: announcement.likes_count || announcement.likes || 0,
                     location: announcement.location || 'Non spécifié',
                     isLiked: announcement.is_liked || false,
-                    isFavorite: false
-                }));
+                    isFavorite: announcement.is_liked || false
+                    };
+                });
                 
                 if (reset || page === 1) {
                     setOffers(transformedOffers);
@@ -114,6 +124,9 @@ const Home = () => {
         if (filter !== 'all') {
             filtered = filtered.filter(offer => offer.type === filter);
         }
+
+        // Filtrer seulement les annonces actives par défaut
+        filtered = filtered.filter(offer => offer.status === 'active');
 
         // Filtre par prix
         if (priceFilter !== 'all') {
@@ -423,16 +436,13 @@ const Home = () => {
                                         </h6>
                                     </Card.Body>
 
-                                    {/* Image */}
-                                    <div className="position-relative">
-                                        <img 
-                                            src={offer.image} 
-                                            alt={offer.title}
-                                            className="w-100"
-                                            style={{ height: '200px', objectFit: 'cover', cursor: 'pointer' }}
-                                            onClick={() => recordView(offer.id)}
-                                        />
-                                    </div>
+                                    {/* Image/Médias */}
+                                    <MediaGallery
+                                        media={offer.media}
+                                        images={offer.images}
+                                        title={offer.title}
+                                        onImageClick={() => recordView(offer.id)}
+                                    />
 
                                     {/* Description et actions */}
                                     <Card.Body className="pt-3">

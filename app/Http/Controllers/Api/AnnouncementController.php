@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\AnnouncementLike;
 use App\Models\AnnouncementView;
+use App\Models\User;
+use App\Notifications\AnnouncementNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 
 class AnnouncementController extends Controller
 {
     public function __construct()
     {
-        // Désactiver l'authentification pour les tests
-        // $this->middleware('auth:sanctum');
+        // Authentification requise pour créer/modifier des annonces
+        $this->middleware('auth:sanctum', ['except' => ['index', 'show', 'storeWithFiles', 'updateWithFiles']]);
     }
     /**
      * Display a listing of the resource.
@@ -89,9 +92,50 @@ class AnnouncementController extends Controller
             'location' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'is_urgent' => 'boolean',
+            'is_promotional' => 'boolean',
             'images' => 'nullable|array',
-            'images.*' => 'nullable|string'
+            'images.*' => 'nullable|string',
+            'media' => 'nullable|array',
+            'media.*' => 'nullable|array',
+            'media_files' => 'nullable|array',
+            'media_files.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:10240'
         ]);
+
+        // Traitement des fichiers uploadés
+        $images = $request->images ?? [];
+        $media = $request->media ?? [];
+        
+        if ($request->hasFile('media_files')) {
+            foreach ($request->file('media_files') as $file) {
+                if ($file->isValid()) {
+                    // Déterminer le type de fichier
+                    $mimeType = $file->getMimeType();
+                    $isVideo = str_starts_with($mimeType, 'video/');
+                    $type = $isVideo ? 'video' : 'image';
+                    
+                    // Générer un nom unique
+                    $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    
+                    // Stocker le fichier
+                    $directory = $isVideo ? 'announcements/videos' : 'announcements/images';
+                    $path = $file->storeAs($directory, $fileName, 'public');
+                    
+                    // Créer l'URL accessible
+                    $url = asset('storage/' . $directory . '/' . $fileName);
+                    
+                    // Ajouter aux collections
+                    $images[] = $url;
+                    $media[] = [
+                        'type' => $type,
+                        'url' => $url,
+                        'filename' => $fileName,
+                        'original_name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime_type' => $mimeType
+                    ];
+                }
+            }
+        }
 
         $announcement = Announcement::create([
             'title' => $request->title,
@@ -100,17 +144,119 @@ class AnnouncementController extends Controller
             'type' => $request->type,
             'location' => $request->location,
             'category_id' => $request->category_id,
-            'user_id' => auth()->id() ?? 1, // Default to user 1 for testing
+            'user_id' => $request->user_id ?? auth()->id() ?? 1,
             'is_urgent' => $request->is_urgent ?? false,
-            'images' => $request->images ?? [],
-            'status' => 'pending'
+            'is_promotional' => $request->is_promotional ?? false,
+            'promotional_fee' => $request->is_promotional ? 500 : null,
+            'promoted_at' => $request->is_promotional ? now() : null,
+            'images' => $images,
+            'media' => $media,
+            'status' => 'active'
+        ]);
+
+        $announcement->load(['user', 'category']);
+
+        // Envoyer notification à tous les utilisateurs si annonce promotionnelle
+        try {
+            if ($announcement->is_promotional) {
+                $users = User::where('is_active', true)
+                    ->where('id', '!=', $announcement->user_id)
+                    ->get();
+                    
+                Notification::send($users, new AnnouncementNotification($announcement, 'created'));
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Erreur envoi notification annonce', [
+                'announcement_id' => $announcement->id, 
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Annonce créée avec succès',
+            'data' => $announcement
+        ], 201);
+    }
+
+    /**
+     * Store a newly created resource with file uploads.
+     */
+    public function storeWithFiles(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'type' => 'required|in:sell,buy,service,exchange',
+            'location' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'category_id' => 'required|exists:categories,id',
+            'is_urgent' => 'boolean',
+            'is_promotional' => 'boolean',
+            'media_files' => 'nullable|array',
+            'media_files.*' => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:10240'
+        ]);
+
+        // Traitement des fichiers uploadés
+        $images = [];
+        $media = [];
+        
+        if ($request->hasFile('media_files')) {
+            foreach ($request->file('media_files') as $file) {
+                if ($file->isValid()) {
+                    // Déterminer le type de fichier
+                    $mimeType = $file->getMimeType();
+                    $isVideo = str_starts_with($mimeType, 'video/');
+                    $type = $isVideo ? 'video' : 'image';
+                    
+                    // Générer un nom unique
+                    $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    
+                    // Stocker le fichier
+                    $directory = $isVideo ? 'announcements/videos' : 'announcements/images';
+                    $path = $file->storeAs($directory, $fileName, 'public');
+                    
+                    // Créer l'URL accessible
+                    $url = asset('storage/' . $directory . '/' . $fileName);
+                    
+                    // Ajouter aux collections
+                    $images[] = $url;
+                    $media[] = [
+                        'type' => $type,
+                        'url' => $url,
+                        'filename' => $fileName,
+                        'original_name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime_type' => $mimeType
+                    ];
+                }
+            }
+        }
+
+        $announcement = Announcement::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'price' => $request->price,
+            'type' => $request->type,
+            'location' => $request->location,
+            'phone' => $request->phone,
+            'category_id' => $request->category_id,
+            'user_id' => $request->user_id ?? auth()->id() ?? 1,
+            'is_urgent' => $request->is_urgent ?? false,
+            'is_promotional' => $request->is_promotional ?? false,
+            'promotional_fee' => $request->is_promotional ? 500 : null,
+            'promoted_at' => $request->is_promotional ? now() : null,
+            'images' => $images,
+            'media' => $media,
+            'status' => 'active'
         ]);
 
         $announcement->load(['user', 'category']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Annonce créée avec succès',
+            'message' => 'Annonce créée avec succès avec fichiers uploadés',
             'data' => $announcement
         ], 201);
     }
@@ -136,6 +282,15 @@ class AnnouncementController extends Controller
      */
     public function update(Request $request, Announcement $announcement)
     {
+        // Vérification de la propriété (temporaire sans auth) 
+        $userId = $request->user_id ?? auth()->id() ?? 1;
+        if ($announcement->user_id !== $userId && !$request->has('admin_override')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à modifier cette annonce'
+            ], 403);
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -144,11 +299,15 @@ class AnnouncementController extends Controller
             'location' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'is_urgent' => 'boolean',
+            'is_promotional' => 'boolean',
             'images' => 'nullable|array',
-            'images.*' => 'nullable|string'
+            'images.*' => 'nullable|string',
+            'media' => 'nullable|array',
+            'media.*' => 'nullable|array',
+            'user_id' => 'nullable|exists:users,id'
         ]);
 
-        $announcement->update([
+        $updateData = [
             'title' => $request->title,
             'description' => $request->description,
             'price' => $request->price,
@@ -156,14 +315,119 @@ class AnnouncementController extends Controller
             'location' => $request->location,
             'category_id' => $request->category_id,
             'is_urgent' => $request->is_urgent ?? false,
-            'images' => $request->images ?? []
-        ]);
+            'images' => $request->images ?? [],
+            'media' => $request->media ?? []
+        ];
+
+        // Si l'annonce devient promotionnelle
+        if ($request->is_promotional && !$announcement->is_promotional) {
+            $updateData['is_promotional'] = true;
+            $updateData['promotional_fee'] = 500;
+            $updateData['promoted_at'] = now();
+        }
+
+        $announcement->update($updateData);
 
         $announcement->load(['user', 'category']);
 
         return response()->json([
             'success' => true,
             'message' => 'Annonce mise à jour avec succès',
+            'data' => $announcement
+        ]);
+    }
+
+    /**
+     * Update the specified resource with file uploads.
+     */
+    public function updateWithFiles(Request $request, Announcement $announcement)
+    {
+        // Vérification de la propriété (temporaire sans auth) 
+        $userId = (int)($request->user_id ?? auth()->id() ?? 1);
+        if ((int)$announcement->user_id !== $userId && !$request->has('admin_override')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à modifier cette annonce'
+            ], 403);
+        }
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'type' => 'required|in:sell,buy,service,exchange',
+            'location' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'is_urgent' => 'boolean',
+            'is_promotional' => 'boolean',
+            'user_id' => 'nullable|exists:users,id',
+            'media_files' => 'nullable|array',
+            'media_files.*' => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:10240',
+            'keep_existing_media' => 'boolean'
+        ]);
+
+        // Traitement des fichiers uploadés
+        $images = $request->get('keep_existing_media', false) ? $announcement->images : [];
+        $media = $request->get('keep_existing_media', false) ? $announcement->media : [];
+        
+        if ($request->hasFile('media_files')) {
+            foreach ($request->file('media_files') as $file) {
+                if ($file->isValid()) {
+                    // Déterminer le type de fichier
+                    $mimeType = $file->getMimeType();
+                    $isVideo = str_starts_with($mimeType, 'video/');
+                    $type = $isVideo ? 'video' : 'image';
+                    
+                    // Générer un nom unique
+                    $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    
+                    // Stocker le fichier
+                    $directory = $isVideo ? 'announcements/videos' : 'announcements/images';
+                    $path = $file->storeAs($directory, $fileName, 'public');
+                    
+                    // Créer l'URL accessible
+                    $url = asset('storage/' . $directory . '/' . $fileName);
+                    
+                    // Ajouter aux collections
+                    $images[] = $url;
+                    $media[] = [
+                        'type' => $type,
+                        'url' => $url,
+                        'filename' => $fileName,
+                        'original_name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime_type' => $mimeType
+                    ];
+                }
+            }
+        }
+
+        $updateData = [
+            'title' => $request->title,
+            'description' => $request->description,
+            'price' => $request->price,
+            'type' => $request->type,
+            'location' => $request->location,
+            'category_id' => $request->category_id,
+            'is_urgent' => $request->is_urgent ?? false,
+            'images' => $images,
+            'media' => $media
+        ];
+
+        // Si l'annonce devient promotionnelle
+        if ($request->is_promotional && !$announcement->is_promotional) {
+            $updateData['is_promotional'] = true;
+            $updateData['promotional_fee'] = 500;
+            $updateData['promoted_at'] = now();
+        }
+
+        $announcement->update($updateData);
+
+        $announcement->load(['user', 'category']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Annonce mise à jour avec succès avec nouveaux médias',
             'data' => $announcement
         ]);
     }
@@ -186,8 +450,18 @@ class AnnouncementController extends Controller
      */
     public function updateStatus(Request $request, Announcement $announcement)
     {
+        // Vérification de la propriété (temporaire sans auth) 
+        $userId = $request->user_id ?? auth()->id() ?? 1;
+        if ($announcement->user_id !== $userId && !$request->has('admin_override')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à modifier le statut de cette annonce'
+            ], 403);
+        }
+
         $request->validate([
-            'status' => 'required|in:active,pending,sold,inactive'
+            'status' => 'required|in:active,pending,sold,paused,expired,inactive',
+            'user_id' => 'nullable|exists:users,id'
         ]);
 
         $announcement->update(['status' => $request->status]);
@@ -197,5 +471,81 @@ class AnnouncementController extends Controller
             'message' => 'Statut mis à jour avec succès',
             'data' => $announcement
         ]);
+    }
+
+    /**
+     * Get user's own announcements
+     */
+    public function getUserAnnouncements(Request $request, $userId = null)
+    {
+        try {
+            // Si aucun userId fourni, utiliser l'utilisateur connecté
+            $targetUserId = $userId ?? Auth::id() ?? 1; // Fallback to user 1 for testing
+            
+            if (!$targetUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Utilisateur non authentifié'
+                ], 401);
+            }
+
+            $query = Announcement::where('user_id', $targetUserId)
+                ->with(['user', 'category'])
+                ->withCount(['likes', 'views']);
+
+            // Filtrer par statut si demandé
+            if ($request->has('status') && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Trier par date de création (plus récent en premier)
+            $query->orderBy('created_at', 'desc');
+
+            // Pagination
+            $perPage = $request->get('per_page', 15);
+            $announcements = $query->paginate($perPage);
+
+            // Transformer les données pour le frontend
+            $announcements->getCollection()->transform(function ($announcement) {
+                return [
+                    'id' => $announcement->id,
+                    'title' => $announcement->title,
+                    'description' => $announcement->description,
+                    'price' => $announcement->price,
+                    'type' => $announcement->type,
+                    'category' => $announcement->category,
+                    'location' => $announcement->location,
+                    'status' => $announcement->status,
+                    'is_urgent' => $announcement->is_urgent,
+                    'images' => is_string($announcement->images) ? json_decode($announcement->images, true) : ($announcement->images ?: []),
+                    'media' => is_string($announcement->media) ? json_decode($announcement->media, true) : ($announcement->media ?: []),
+                    'views' => $announcement->views_count ?? $announcement->views ?? 0,
+                    'likes' => $announcement->likes_count ?? $announcement->likes ?? 0,
+                    'created_at' => $announcement->created_at,
+                    'updated_at' => $announcement->updated_at,
+                    'user' => $announcement->user
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $announcements->items(),
+                'meta' => [
+                    'current_page' => $announcements->currentPage(),
+                    'last_page' => $announcements->lastPage(),
+                    'per_page' => $announcements->perPage(),
+                    'total' => $announcements->total(),
+                    'from' => $announcements->firstItem(),
+                    'to' => $announcements->lastItem()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des annonces',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

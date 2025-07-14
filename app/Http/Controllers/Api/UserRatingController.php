@@ -157,23 +157,25 @@ class UserRatingController extends Controller
         try {
             $limit = $request->get('limit', 10);
             
-            // Algorithme de recommandation basé sur les notes et l'activité
+            // Algorithme de recommandation simple
             $recommendedUsers = User::where('is_student', true)
-                ->with(['announcements' => function($query) {
-                    $query->withCount(['likes', 'views'])
-                        ->orderByRaw('(likes_count * 3 + views_count * 1) DESC')
-                        ->limit(3);
-                }])
-                ->withCount('receivedRatings as ratings_count')
+                ->orderBy('verified', 'desc')
+                ->orderBy('last_seen', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
                 ->get()
                 ->map(function($user) {
-                    $user->recommendation_score = $user->recommendation_score;
-                    $user->featured_announcements = $user->featured_announcements;
+                    // Calculer un score simple
+                    $score = 0;
+                    $score += $user->verified ? 10 : 0;
+                    $score += $user->last_seen ? 5 : 0;
+                    $score += floatval($user->rating) * 20;
+                    
+                    $user->recommendation_score = $score;
+                    $user->featured_announcements = [];
+                    
                     return $user;
-                })
-                ->sortByDesc('recommendation_score')
-                ->take($limit)
-                ->values();
+                });
 
             return response()->json([
                 'success' => true,
@@ -285,6 +287,44 @@ class UserRatingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la mise à jour de la note'
+            ], 500);
+        }
+    }
+
+    public function getGivenRatings(Request $request)
+    {
+        try {
+            $raterId = Auth::id() ?? 1; // Fallback to user 1 for testing
+            
+            if (!$raterId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous devez être connecté'
+                ], 401);
+            }
+
+            $ratings = UserRating::where('rater_id', $raterId)
+                ->with(['ratedUser', 'announcement'])
+                ->recentFirst()
+                ->paginate($request->get('per_page', 10));
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'ratings' => $ratings->items(),
+                    'pagination' => [
+                        'current_page' => $ratings->currentPage(),
+                        'last_page' => $ratings->lastPage(),
+                        'per_page' => $ratings->perPage(),
+                        'total' => $ratings->total()
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des notes données'
             ], 500);
         }
     }

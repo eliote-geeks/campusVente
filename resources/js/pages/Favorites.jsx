@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import Avatar from '../components/Avatar.jsx';
 
 const Favorites = () => {
     const { user } = useAuth();
@@ -178,10 +179,13 @@ const Favorites = () => {
                                 <Card className="card-modern h-100 position-relative">
                                     <div className="position-relative">
                                         <img 
-                                            src={announcement.images?.[0] || 'https://via.placeholder.com/300x200'}
+                                            src={announcement.images?.[0] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=200&fit=crop'}
                                             alt={announcement.title}
                                             className="card-img-top"
                                             style={{ height: '200px', objectFit: 'cover' }}
+                                            onError={(e) => {
+                                                e.target.src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=200&fit=crop';
+                                            }}
                                         />
                                         
                                         {/* Bouton favori */}

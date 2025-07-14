@@ -20,6 +20,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'prenom', 
+        'nom',
         'email',
         'password',
         'phone',
@@ -94,30 +96,66 @@ class User extends Authenticatable
         return UserRating::getRatingDistribution($this->id);
     }
 
-    // Articles phares (annonces les plus populaires)
-    public function getFeaturedAnnouncementsAttribute()
+    // Accessor pour avatar avec valeur par défaut
+    public function getAvatarAttribute($value)
     {
-        return $this->announcements()
-            ->withCount(['likes', 'views'])
-            ->orderByRaw('(likes_count * 3 + views_count * 1) DESC')
-            ->limit(3)
-            ->get();
+        if ($value) {
+            return $value;
+        }
+        
+        // Avatar par défaut basé sur le nom
+        $name = $this->name ?? 'U';
+        $initials = strtoupper(substr($name, 0, 1));
+        return "https://ui-avatars.com/api/?name={$initials}&background=6366f1&color=fff&size=128";
     }
 
-    // Score de recommandation basé sur les notes et l'activité
-    public function getRecommendationScoreAttribute()
+    // Accessors pour les noms
+    public function getPrenomAttribute()
     {
-        $avgRating = $this->average_rating;
-        $totalRatings = $this->total_ratings;
-        $totalAnnouncements = $this->announcements()->count();
-        $totalLikes = $this->announcements()->withCount('likes')->sum('likes_count');
+        // Si prenom existe, le retourner, sinon extraire du nom complet
+        if (!empty($this->attributes['prenom'])) {
+            return $this->attributes['prenom'];
+        }
         
-        // Formule de score : note moyenne * nombre d'évaluations + activité
-        $ratingScore = $avgRating * min($totalRatings, 10); // Cap à 10 évaluations pour éviter l'inflation
-        $activityScore = ($totalAnnouncements * 2) + ($totalLikes * 0.5);
-        
-        return round($ratingScore + $activityScore, 2);
+        $names = explode(' ', $this->name ?? '');
+        return $names[0] ?? '';
     }
+
+    public function getNomAttribute()
+    {
+        // Si nom existe, le retourner, sinon extraire du nom complet
+        if (!empty($this->attributes['nom'])) {
+            return $this->attributes['nom'];
+        }
+        
+        $names = explode(' ', $this->name ?? '');
+        return isset($names[1]) ? implode(' ', array_slice($names, 1)) : '';
+    }
+
+    // Articles phares (annonces les plus populaires) - TEMPORAIREMENT DÉSACTIVÉ
+    // public function getFeaturedAnnouncementsAttribute()
+    // {
+    //     return $this->announcements()
+    //         ->withCount(['likes', 'views'])
+    //         ->orderByRaw('(likes_count * 3 + views_count * 1) DESC')
+    //         ->limit(3)
+    //         ->get();
+    // }
+
+    // Score de recommandation basé sur les notes et l'activité - TEMPORAIREMENT DÉSACTIVÉ
+    // public function getRecommendationScoreAttribute()
+    // {
+    //     $avgRating = $this->average_rating;
+    //     $totalRatings = $this->total_ratings;
+    //     $totalAnnouncements = $this->announcements()->count();
+    //     $totalLikes = $this->announcements()->withCount('likes')->sum('likes_count');
+    //     
+    //     // Formule de score : note moyenne * nombre d'évaluations + activité
+    //     $ratingScore = $avgRating * min($totalRatings, 10); // Cap à 10 évaluations pour éviter l'inflation
+    //     $activityScore = ($totalAnnouncements * 2) + ($totalLikes * 0.5);
+    //     
+    //     return round($ratingScore + $activityScore, 2);
+    // }
 
     public function announcements()
     {

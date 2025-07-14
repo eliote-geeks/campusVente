@@ -16,17 +16,26 @@ class Announcement extends Model
         'type',
         'status',
         'location',
+        'phone',
         'images',
+        'media',
         'user_id',
         'category_id',
         'is_urgent',
+        'is_promotional',
+        'promotional_fee',
+        'promoted_at',
         'views'
     ];
 
     protected $casts = [
         'images' => 'array',
+        'media' => 'array',
         'is_urgent' => 'boolean',
-        'price' => 'decimal:2'
+        'is_promotional' => 'boolean',
+        'price' => 'decimal:2',
+        'promotional_fee' => 'decimal:2',
+        'promoted_at' => 'datetime'
     ];
 
     public function user()

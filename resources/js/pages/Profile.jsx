@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, Badge, Modal, Alert, Tabs, Tab } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, Badge, Alert, Tabs, Tab } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { notificationsAPI } from '../services/api.js';
+import Avatar from '../components/Avatar.jsx';
+import ProfileImageUpload from '../components/ProfileImageUpload.jsx';
 
 const Profile = () => {
     const { user, updateUser } = useAuth();
@@ -13,6 +16,8 @@ const Profile = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [userRatings, setUserRatings] = useState([]);
     const [userAnnouncements, setUserAnnouncements] = useState([]);
+    const [notifications, setNotifications] = useState([]);
+    const [notificationStats, setNotificationStats] = useState({});
 
     // Récupérer les informations du profil
     useEffect(() => {
@@ -72,15 +77,29 @@ const Profile = () => {
     useEffect(() => {
         const fetchAnnouncements = async () => {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements?user_id=${user.id}`, {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('Token manquant pour récupérer les annonces');
+                    return;
+                }
+
+                const response = await fetch(`http://127.0.0.1:8000/api/v1/my-announcements`, {
                     headers: {
+                        'Authorization': `Bearer ${token}`,
                         'Accept': 'application/json'
                     }
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
                     setUserAnnouncements(data.data || []);
+                } else {
+                    console.error('Erreur API:', data.message);
                 }
             } catch (error) {
                 console.error('Erreur lors de la récupération des annonces:', error);
@@ -89,6 +108,43 @@ const Profile = () => {
 
         if (user?.id) {
             fetchAnnouncements();
+        }
+    }, [user?.id]);
+
+    // Récupérer les notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const response = await notificationsAPI.getAll();
+                // Note: axios interceptor returns response.data directly
+                if (response.success) {
+                    setNotifications(response.data.notifications.slice(0, 5)); // Dernières 5 notifications
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des notifications:', error);
+            }
+        };
+
+        const fetchNotificationStats = async () => {
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/api/v1/notifications/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setNotificationStats(data.data);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des statistiques de notifications:', error);
+            }
+        };
+
+        if (user?.id) {
+            fetchNotifications();
+            fetchNotificationStats();
         }
     }, [user?.id]);
 
@@ -138,6 +194,32 @@ const Profile = () => {
         });
     };
 
+    const formatNotificationDate = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffHours < 24) {
+            return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+        } else if (diffDays < 7) {
+            return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+        } else {
+            return date.toLocaleDateString('fr-FR');
+        }
+    };
+
+    const getNotificationTypeColor = (type) => {
+        switch (type) {
+            case 'welcome': return 'success';
+            case 'announcement': return 'primary';
+            case 'message': return 'info';
+            case 'system': return 'secondary';
+            default: return 'secondary';
+        }
+    };
+
     if (loading) {
         return (
             <div className="content-with-navbar">
@@ -172,12 +254,13 @@ const Profile = () => {
                     <Col lg={4}>
                         <Card className="card-modern mb-4">
                             <Card.Body className="text-center p-4">
-                                <img 
-                                    src={userProfile?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}
-                                    alt="Profile"
-                                    className="rounded-circle mb-3 cursor-pointer"
-                                    style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                                <Avatar
+                                    src={userProfile?.avatar}
+                                    name={userProfile?.name}
+                                    size={120}
+                                    className="mb-3 shadow"
                                     onClick={() => setShowImageModal(true)}
+                                    style={{ cursor: 'pointer' }}
                                 />
                                 
                                 <h4 className="fw-bold mb-1">{userProfile?.name}</h4>
@@ -413,6 +496,177 @@ const Profile = () => {
                                             </div>
                                         )}
                                     </Tab>
+
+                                    <Tab eventKey="announcements" title={`📢 Mes Annonces (${userAnnouncements.length})`}>
+                                        {userAnnouncements.length === 0 ? (
+                                            <div className="text-center py-4">
+                                                <div style={{ fontSize: '3rem' }}>📝</div>
+                                                <p className="text-muted mt-2">Aucune annonce publiée</p>
+                                                <Button variant="outline-primary" href="/create-announcement">
+                                                    Créer ma première annonce
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                    <h6 className="fw-bold mb-0">📋 Mes dernières annonces</h6>
+                                                    <Button variant="outline-primary" size="sm" href="/my-announcements">
+                                                        Voir toutes
+                                                    </Button>
+                                                </div>
+                                                
+                                                <div className="space-y-3">
+                                                    {userAnnouncements.slice(0, 5).map(announcement => (
+                                                        <Card key={announcement.id} className="border-0 bg-light">
+                                                            <Card.Body className="p-3">
+                                                                <div className="d-flex align-items-start gap-3">
+                                                                    <img 
+                                                                        src={announcement.images?.[0] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=60&h=60&fit=crop'}
+                                                                        alt={announcement.title}
+                                                                        className="rounded"
+                                                                        style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                                                                        onError={(e) => {
+                                                                            e.target.src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=60&h=60&fit=crop';
+                                                                        }}
+                                                                    />
+                                                                    <div className="flex-grow-1">
+                                                                        <div className="d-flex justify-content-between align-items-start mb-1">
+                                                                            <h6 className="fw-bold mb-1" style={{ fontSize: '14px' }}>
+                                                                                {announcement.title}
+                                                                            </h6>
+                                                                            <div className="d-flex align-items-center gap-2">
+                                                                                <Badge bg={announcement.status === 'active' ? 'success' : announcement.status === 'sold' ? 'secondary' : 'warning'} style={{ fontSize: '8px' }}>
+                                                                                    {announcement.status === 'active' ? 'ACTIVE' : announcement.status === 'sold' ? 'VENDUE' : announcement.status.toUpperCase()}
+                                                                                </Badge>
+                                                                                <small className="text-muted">
+                                                                                    {formatDate(announcement.created_at)}
+                                                                                </small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p className="text-muted mb-2" style={{ fontSize: '13px' }}>
+                                                                            {announcement.description?.substring(0, 100)}...
+                                                                        </p>
+                                                                        <div className="d-flex justify-content-between align-items-center">
+                                                                            <div className="d-flex align-items-center gap-3">
+                                                                                <span className="fw-bold text-primary" style={{ fontSize: '14px' }}>
+                                                                                    {announcement.price > 0 ? `${announcement.price.toLocaleString('fr-FR')} FCFA` : 'Gratuit'}
+                                                                                </span>
+                                                                                <Badge bg="light" text="dark" style={{ fontSize: '10px' }}>
+                                                                                    {typeof announcement.category === 'object' ? announcement.category?.name : announcement.category}
+                                                                                </Badge>
+                                                                            </div>
+                                                                            <div className="d-flex align-items-center gap-2">
+                                                                                <span className="text-muted" style={{ fontSize: '11px' }}>
+                                                                                    👁️ {announcement.views || 0}
+                                                                                </span>
+                                                                                <span className="text-muted" style={{ fontSize: '11px' }}>
+                                                                                    ❤️ {announcement.likes || 0}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </Card.Body>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </Tab>
+
+                                    <Tab eventKey="notifications" title={`🔔 Notifications (${notificationStats.unread_notifications || 0})`}>
+                                        <Row className="mb-3">
+                                            <Col md={6}>
+                                                <Card className="bg-light border-0">
+                                                    <Card.Body className="p-3">
+                                                        <div className="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <h6 className="fw-bold mb-1">📊 Total notifications</h6>
+                                                                <h4 className="text-primary mb-0">{notificationStats.total_notifications || 0}</h4>
+                                                            </div>
+                                                            <div className="text-primary" style={{ fontSize: '2rem' }}>📱</div>
+                                                        </div>
+                                                    </Card.Body>
+                                                </Card>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Card className="bg-light border-0">
+                                                    <Card.Body className="p-3">
+                                                        <div className="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <h6 className="fw-bold mb-1">🔴 Non lues</h6>
+                                                                <h4 className="text-danger mb-0">{notificationStats.unread_notifications || 0}</h4>
+                                                            </div>
+                                                            <div className="text-danger" style={{ fontSize: '2rem' }}>🚨</div>
+                                                        </div>
+                                                    </Card.Body>
+                                                </Card>
+                                            </Col>
+                                        </Row>
+
+                                        {notifications.length === 0 ? (
+                                            <div className="text-center py-4">
+                                                <div style={{ fontSize: '3rem' }}>🔕</div>
+                                                <p className="text-muted mt-2">Aucune notification récente</p>
+                                                <Button variant="outline-primary" href="/notifications">
+                                                    Voir toutes les notifications
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                    <h6 className="fw-bold mb-0">📋 Notifications récentes</h6>
+                                                    <Button variant="outline-primary" size="sm" href="/notifications">
+                                                        Voir toutes
+                                                    </Button>
+                                                </div>
+                                                
+                                                <div className="space-y-3">
+                                                    {notifications.map(notification => (
+                                                        <Card key={notification.id} className={`border-0 ${!notification.read ? 'bg-light' : 'bg-white'}`}>
+                                                            <Card.Body className="p-3">
+                                                                <div className="d-flex align-items-start gap-3">
+                                                                    <div 
+                                                                        className="rounded-circle d-flex align-items-center justify-content-center"
+                                                                        style={{ 
+                                                                            width: '35px', 
+                                                                            height: '35px', 
+                                                                            backgroundColor: '#f8f9fa',
+                                                                            border: '1px solid #dee2e6',
+                                                                            fontSize: '16px'
+                                                                        }}
+                                                                    >
+                                                                        {notification.icon || '🔔'}
+                                                                    </div>
+                                                                    <div className="flex-grow-1">
+                                                                        <div className="d-flex justify-content-between align-items-start mb-1">
+                                                                            <h6 className="fw-bold mb-1" style={{ fontSize: '14px' }}>
+                                                                                {notification.title}
+                                                                                {!notification.read && (
+                                                                                    <Badge bg="primary" className="ms-2" style={{ fontSize: '8px' }}>
+                                                                                        NOUVEAU
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </h6>
+                                                                            <small className="text-muted">
+                                                                                {formatNotificationDate(notification.created_at)}
+                                                                            </small>
+                                                                        </div>
+                                                                        <p className="text-muted mb-1" style={{ fontSize: '13px' }}>
+                                                                            {notification.message}
+                                                                        </p>
+                                                                        <Badge bg={getNotificationTypeColor(notification.type)} style={{ fontSize: '9px' }}>
+                                                                            {notification.type.replace('_', ' ').toUpperCase()}
+                                                                        </Badge>
+                                                                    </div>
+                                                                </div>
+                                                            </Card.Body>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </Tab>
                                 </Tabs>
                             </Card.Body>
                         </Card>
@@ -420,21 +674,16 @@ const Profile = () => {
                 </Row>
 
                 {/* Modal pour changer l'image de profil */}
-                <Modal show={showImageModal} onHide={() => setShowImageModal(false)}>
-                    <Modal.Header closeButton>
-                        <Modal.Title>Changer l'image de profil</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <p className="text-muted">
-                            Fonctionnalité de changement d'image de profil à implémenter.
-                        </p>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowImageModal(false)}>
-                            Fermer
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
+                <ProfileImageUpload
+                    show={showImageModal}
+                    onHide={() => setShowImageModal(false)}
+                    currentImage={userProfile?.avatar}
+                    userName={userProfile?.name}
+                    onImageUpdate={(newAvatarUrl) => {
+                        setUserProfile(prev => ({ ...prev, avatar: newAvatarUrl }));
+                        updateUser({ ...user, avatar: newAvatarUrl });
+                    }}
+                />
             </Container>
         </div>
     );
