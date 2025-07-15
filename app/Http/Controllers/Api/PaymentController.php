@@ -3,23 +3,48 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
+use App\Models\Announcement;
+use App\Models\Meeting;
+use App\Models\User;
+use App\Services\MonetbilService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
+    protected $monetbilService;
+
+    public function __construct(MonetbilService $monetbilService)
+    {
+        $this->monetbilService = $monetbilService;
+        
+        // Authentification requise pour tous les paiements sauf les notifications webhook
+        $this->middleware('auth:sanctum')->except(['handleNotification']);
+    }
+
     /**
-     * Traiter un paiement pour annonce promotionnelle
+     * Initier un paiement Monetbil
      */
-    public function processPromotionalPayment(Request $request)
+    public function initiatePayment(Request $request)
     {
         try {
+            Log::info('Tentative initiation paiement', [
+                'headers' => $request->headers->all(),
+                'has_auth_header' => $request->hasHeader('Authorization'),
+                'user_authenticated' => Auth::check(),
+                'user_id' => Auth::id()
+            ]);
+            
             $validator = Validator::make($request->all(), [
-                'amount' => 'required|numeric|min:0',
-                'currency' => 'required|string',
-                'type' => 'required|string',
-                'user_id' => 'required|exists:users,id'
+                'amount' => 'required|numeric|min:100',
+                'type' => 'required|in:promotional,meeting,commission',
+                'announcement_id' => 'nullable|exists:announcements,id',
+                'meeting_id' => 'nullable|exists:meetings,id',
+                'phone' => 'required|string|min:8',
+                'email' => 'required|email',
             ]);
 
             if ($validator->fails()) {
@@ -30,53 +55,171 @@ class PaymentController extends Controller
                 ], 422);
             }
 
-            $userId = $request->user_id;
-            $amount = $request->amount;
-            $currency = $request->currency;
-            $type = $request->type;
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Utilisateur non authentifié'
+                ], 401);
+            }
 
-            // Pour l'instant, on valide automatiquement tous les paiements
-            $paymentSuccessful = true;
+            // Générer une référence de paiement unique
+            $paymentRef = $this->monetbilService->generatePaymentReference('CV');
 
-            if ($paymentSuccessful) {
-                // Ici, vous pourriez sauvegarder la transaction en base de données
-                $paymentRecord = [
-                    'id' => uniqid('pay_'),
-                    'user_id' => $userId,
-                    'amount' => $amount,
-                    'currency' => $currency,
-                    'type' => $type,
-                    'status' => 'completed',
-                    'payment_method' => 'auto_validated',
-                    'transaction_id' => 'txn_' . uniqid(),
-                    'processed_at' => now(),
-                    'created_at' => now()
-                ];
+            // Créer l'enregistrement de paiement
+            $payment = Payment::create([
+                'user_id' => $user->id,
+                'announcement_id' => $request->announcement_id,
+                'meeting_id' => $request->meeting_id,
+                'payment_ref' => $paymentRef,
+                'amount' => $request->amount,
+                'currency' => config('services.monetbil.currency'),
+                'type' => $request->type,
+                'status' => 'pending',
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'notes' => $request->notes,
+            ]);
+
+            // Préparer les paramètres pour Monetbil
+            $monetbilParams = [
+                'amount' => $request->amount,
+                'currency' => config('services.monetbil.currency'),
+                'user_id' => $user->id,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'item_ref' => $payment->id,
+                'payment_ref' => $paymentRef,
+                'return_url' => url('/payment/return/' . $payment->id),
+                'notify_url' => url('/api/v1/payment/notify'),
+                'first_name' => explode(' ', $user->name)[0] ?? $user->name,
+                'last_name' => explode(' ', $user->name)[1] ?? '',
+                'country' => config('services.monetbil.country'),
+                'lang' => config('services.monetbil.lang'),
+            ];
+
+            // Initier le paiement avec Monetbil
+            $result = $this->monetbilService->initiatePayment($monetbilParams);
+
+            if ($result['success']) {
+                // Mettre à jour le paiement avec les données Monetbil
+                $payment->update([
+                    'monetbil_data' => $result['payment_data'],
+                    'monetbil_payment_url' => $result['payment_url'],
+                    'status' => 'processing'
+                ]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Paiement traité avec succès',
+                    'message' => 'Paiement initié avec succès',
                     'data' => [
-                        'payment' => $paymentRecord,
-                        'status' => 'completed',
-                        'validation_message' => 'Paiement validé automatiquement pour les tests'
+                        'payment_id' => $payment->id,
+                        'payment_ref' => $paymentRef,
+                        'payment_url' => $result['payment_url'],
+                        'amount' => $payment->formatted_amount,
+                        'payment_methods' => $this->monetbilService->getPaymentMethods()
                     ]
                 ]);
             } else {
+                $payment->markAsFailed($result['error']);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Échec du traitement du paiement',
-                    'error' => 'Payment processing failed'
+                    'message' => 'Erreur lors de l\'initiation du paiement',
+                    'error' => $result['error']
                 ], 400);
             }
 
         } catch (\Exception $e) {
+            Log::error('Erreur initiation paiement: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors du traitement du paiement',
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Traiter la notification de paiement de Monetbil
+     */
+    public function handleNotification(Request $request)
+    {
+        try {
+            Log::info('Notification Monetbil reçue', $request->all());
+
+            $result = $this->monetbilService->processNotification($request->all());
+
+            if (!$result['success']) {
+                Log::error('Erreur traitement notification: ' . $result['error']);
+                return response()->json(['status' => 'error'], 400);
+            }
+
+            // Trouver le paiement par référence
+            $payment = Payment::where('payment_ref', $result['payment_ref'])->first();
+
+            if (!$payment) {
+                Log::error('Paiement introuvable: ' . $result['payment_ref']);
+                return response()->json(['status' => 'payment_not_found'], 404);
+            }
+
+            // Mettre à jour le statut du paiement
+            if ($result['payment_status'] === 'success') {
+                $payment->markAsCompleted($result['transaction_id']);
+                
+                // Traiter les actions post-paiement
+                $this->processPostPaymentActions($payment);
+                
+                Log::info('Paiement complété: ' . $payment->payment_ref);
+            } else {
+                $payment->markAsFailed('Paiement refusé par Monetbil');
+                Log::warning('Paiement échoué: ' . $payment->payment_ref);
+            }
+
+            return response()->json(['status' => 'ok']);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur notification Monetbil: ' . $e->getMessage());
+            return response()->json(['status' => 'error'], 500);
+        }
+    }
+
+    /**
+     * Traiter les actions après un paiement réussi
+     */
+    private function processPostPaymentActions(Payment $payment)
+    {
+        try {
+            switch ($payment->type) {
+                case 'promotional':
+                    if ($payment->announcement) {
+                        $payment->announcement->update([
+                            'is_promotional' => true,
+                            'promotional_fee' => $payment->amount,
+                            'promoted_at' => now()
+                        ]);
+                    }
+                    break;
+
+                case 'meeting':
+                    // Actions spécifiques aux réunions
+                    break;
+            }
+
+            // Envoyer une notification à l'utilisateur
+            // Vous pouvez implémenter ici l'envoi d'email/SMS
+
+        } catch (\Exception $e) {
+            Log::error('Erreur actions post-paiement: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Traiter un paiement pour annonce promotionnelle (ancienne méthode mise à jour)
+     */
+    public function processPromotionalPayment(Request $request)
+    {
+        $request->merge(['type' => 'promotional']);
+        return $this->initiatePayment($request);
     }
 
     /**
@@ -94,30 +237,29 @@ class PaymentController extends Controller
                 ], 401);
             }
 
-            // Pour l'instant, on retourne des données simulées
-            $mockPayments = [
-                [
-                    'id' => 'pay_' . uniqid(),
-                    'amount' => 500,
-                    'currency' => 'FCFA',
-                    'type' => 'promotional_announcement',
-                    'status' => 'completed',
-                    'payment_method' => 'auto_validated',
-                    'created_at' => now()->subDays(2),
-                    'description' => 'Promotion d\'annonce'
-                ]
-            ];
+            $payments = Payment::with(['announcement', 'meeting'])
+                ->forUser($targetUserId)
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            $totalAmount = Payment::forUser($targetUserId)
+                ->completed()
+                ->sum('amount');
 
             return response()->json([
                 'success' => true,
-                'data' => $mockPayments,
+                'data' => $payments->items(),
                 'meta' => [
-                    'total' => count($mockPayments),
-                    'total_amount' => array_sum(array_column($mockPayments, 'amount'))
+                    'total' => $payments->count(),
+                    'total_amount' => $totalAmount,
+                    'current_page' => $payments->currentPage(),
+                    'last_page' => $payments->lastPage(),
+                    'per_page' => $payments->perPage()
                 ]
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Erreur récupération paiements: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des paiements'

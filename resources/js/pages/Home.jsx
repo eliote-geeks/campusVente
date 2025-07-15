@@ -382,8 +382,8 @@ const Home = () => {
                             <Col key={offer.id} md={6} lg={4}>
                                 <Card className="card-modern h-100 shadow-sm">
                                     {/* Header du post - compact pour grille */}
-                                    <Card.Body className="pb-2">
-                                        <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <Card.Body className="pb-1">
+                                        <div className="d-flex align-items-center justify-content-between mb-1">
                                             <div className="d-flex align-items-center">
                                                 <img 
                                                     src={offer.author.avatar} 
@@ -421,7 +421,7 @@ const Home = () => {
                                         </div>
 
                                         {/* Badge catégorie et prix */}
-                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <div className="d-flex justify-content-between align-items-center mb-1">
                                             <Badge bg="primary" className="small">{offer.category}</Badge>
                                             {offer.price > 0 && (
                                                 <h6 className="text-primary fw-bold mb-0">
@@ -431,23 +431,25 @@ const Home = () => {
                                         </div>
 
                                         {/* Titre */}
-                                        <h6 className="fw-bold mb-2" style={{ lineHeight: '1.3' }}>
+                                        <h6 className="fw-bold mb-1" style={{ lineHeight: '1.2' }}>
                                             {offer.title}
                                         </h6>
                                     </Card.Body>
 
                                     {/* Image/Médias */}
-                                    <MediaGallery
-                                        media={offer.media}
-                                        images={offer.images}
-                                        title={offer.title}
-                                        onImageClick={() => recordView(offer.id)}
-                                    />
+                                    <div style={{ height: '180px' }}>
+                                        <MediaGallery
+                                            media={offer.media}
+                                            images={offer.images}
+                                            title={offer.title}
+                                            onImageClick={() => recordView(offer.id)}
+                                        />
+                                    </div>
 
                                     {/* Description et actions */}
-                                    <Card.Body className="pt-3">
-                                        <p className="text-muted small mb-3" style={{ 
-                                            lineHeight: '1.4',
+                                    <Card.Body className="pt-2 pb-2">
+                                        <p className="text-muted small mb-2" style={{ 
+                                            lineHeight: '1.3',
                                             display: '-webkit-box',
                                             WebkitLineClamp: 2,
                                             WebkitBoxOrient: 'vertical',
@@ -457,7 +459,7 @@ const Home = () => {
                                         </p>
 
                                         {/* Stats et actions */}
-                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <div className="d-flex justify-content-between align-items-center mb-2">
                                             <div className="d-flex gap-3">
                                                 <Button 
                                                     variant="link" 

@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\AnnouncementLike;
 use App\Models\AnnouncementView;
+use App\Models\Payment;
 use App\Models\User;
 use App\Notifications\AnnouncementNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class AnnouncementController extends Controller
@@ -194,6 +196,8 @@ class AnnouncementController extends Controller
             'category_id' => 'required|exists:categories,id',
             'is_urgent' => 'boolean',
             'is_promotional' => 'boolean',
+            'payment_id' => 'nullable|exists:payments,id',
+            'payment_ref' => 'nullable|string',
             'media_files' => 'nullable|array',
             'media_files.*' => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:10240'
         ]);
@@ -234,6 +238,63 @@ class AnnouncementController extends Controller
             }
         }
 
+        // Vérifier le paiement pour les annonces promotionnelles
+        $isPromotional = $request->boolean('is_promotional');
+        $promotionalFee = null;
+        $promotedAt = null;
+        
+        if ($isPromotional) {
+            // Vérifier si un paiement valide a été fourni
+            if ($request->payment_id) {
+                $payment = Payment::find($request->payment_id);
+                
+                if (!$payment) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Paiement introuvable pour cette annonce promotionnelle'
+                    ], 400);
+                }
+                
+                if ($payment->status !== 'completed') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Le paiement doit être complété avant de créer l\'annonce promotionnelle'
+                    ], 400);
+                }
+                
+                if ($payment->type !== 'promotional') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ce paiement ne correspond pas à une promotion d\'annonce'
+                    ], 400);
+                }
+                
+                if ($payment->user_id !== ($request->user_id ?? auth()->id())) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ce paiement n\'appartient pas à l\'utilisateur courant'
+                    ], 400);
+                }
+                
+                // Paiement valide, activer la promotion
+                $promotionalFee = $payment->amount;
+                $promotedAt = now();
+                
+                Log::info('Annonce promotionnelle créée avec paiement valide', [
+                    'payment_id' => $payment->id,
+                    'payment_ref' => $payment->payment_ref,
+                    'amount' => $payment->amount
+                ]);
+                
+            } else {
+                // Pas de paiement fourni, rejeter la promotion
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Un paiement valide est requis pour créer une annonce promotionnelle'
+                ], 400);
+            }
+        }
+
         $announcement = Announcement::create([
             'title' => $request->title,
             'description' => $request->description,
@@ -244,13 +305,19 @@ class AnnouncementController extends Controller
             'category_id' => $request->category_id,
             'user_id' => $request->user_id ?? auth()->id() ?? 1,
             'is_urgent' => $request->is_urgent ?? false,
-            'is_promotional' => $request->is_promotional ?? false,
-            'promotional_fee' => $request->is_promotional ? 500 : null,
-            'promoted_at' => $request->is_promotional ? now() : null,
+            'is_promotional' => $isPromotional,
+            'promotional_fee' => $promotionalFee,
+            'promoted_at' => $promotedAt,
             'images' => $images,
             'media' => $media,
             'status' => 'active'
         ]);
+        
+        // Associer l'annonce au paiement si applicable
+        if ($isPromotional && $request->payment_id) {
+            $payment = Payment::find($request->payment_id);
+            $payment->update(['announcement_id' => $announcement->id]);
+        }
 
         $announcement->load(['user', 'category']);
 

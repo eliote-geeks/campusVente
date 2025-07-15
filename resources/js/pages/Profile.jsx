@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { notificationsAPI } from '../services/api.js';
 import Avatar from '../components/Avatar.jsx';
 import ProfileImageUpload from '../components/ProfileImageUpload.jsx';
+import MediaGallery from '../components/MediaGallery.jsx';
 
 const Profile = () => {
     const { user, updateUser } = useAuth();
@@ -520,15 +521,13 @@ const Profile = () => {
                                                         <Card key={announcement.id} className="border-0 bg-light">
                                                             <Card.Body className="p-3">
                                                                 <div className="d-flex align-items-start gap-3">
-                                                                    <img 
-                                                                        src={announcement.images?.[0] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=60&h=60&fit=crop'}
-                                                                        alt={announcement.title}
-                                                                        className="rounded"
-                                                                        style={{ width: '60px', height: '60px', objectFit: 'cover' }}
-                                                                        onError={(e) => {
-                                                                            e.target.src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=60&h=60&fit=crop';
-                                                                        }}
-                                                                    />
+                                                                    <div style={{ width: '60px', height: '60px' }} className="rounded overflow-hidden">
+                                                                        <MediaGallery
+                                                                            media={announcement.media || []}
+                                                                            images={announcement.images || []}
+                                                                            title={announcement.title}
+                                                                        />
+                                                                    </div>
                                                                     <div className="flex-grow-1">
                                                                         <div className="d-flex justify-content-between align-items-start mb-1">
                                                                             <h6 className="fw-bold mb-1" style={{ fontSize: '14px' }}>

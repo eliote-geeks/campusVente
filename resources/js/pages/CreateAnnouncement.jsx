@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Form, Alert, Spinner, Badge, Progres
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import MediaUpload from '../components/MediaUpload.jsx';
+import PaymentModal from '../components/PaymentModal.jsx';
 import './CreateAnnouncement.css';
 
 const CreateAnnouncement = () => {
@@ -34,6 +35,7 @@ const CreateAnnouncement = () => {
 
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [processingPayment, setProcessingPayment] = useState(false);
+    const [pendingAnnouncementData, setPendingAnnouncementData] = useState(null);
 
     // Simulation d'IA pour suggestions
     const aiSuggestions = {
@@ -203,8 +205,10 @@ const CreateAnnouncement = () => {
             return;
         }
 
-        // Si c'est une annonce promotionnelle, ouvrir le modal de paiement
+        // Si c'est une annonce promotionnelle, préparer les données et ouvrir le modal de paiement
         if (formData.is_promotional) {
+            // Sauvegarder les données du formulaire pour après le paiement
+            setPendingAnnouncementData(formData);
             setShowPaymentModal(true);
             return;
         }
@@ -214,6 +218,10 @@ const CreateAnnouncement = () => {
     };
 
     const createAnnouncement = async () => {
+        return await createAnnouncementDirectly(formData);
+    };
+
+    const createAnnouncementDirectly = async (announcementData) => {
         setLoading(true);
         setError('');
         setSuccess('');
@@ -223,19 +231,27 @@ const CreateAnnouncement = () => {
             const formDataToSend = new FormData();
             
             // Ajouter les champs de base
-            formDataToSend.append('title', formData.title);
-            formDataToSend.append('description', formData.description);
-            formDataToSend.append('price', formData.price);
-            formDataToSend.append('type', formData.type);
-            formDataToSend.append('location', formData.location);
-            formDataToSend.append('phone', formData.phone);
-            formDataToSend.append('category_id', formData.category_id);
-            formDataToSend.append('is_urgent', formData.is_urgent ? '1' : '0');
-            formDataToSend.append('is_promotional', formData.is_promotional ? '1' : '0');
+            formDataToSend.append('title', announcementData.title);
+            formDataToSend.append('description', announcementData.description);
+            formDataToSend.append('price', announcementData.price);
+            formDataToSend.append('type', announcementData.type);
+            formDataToSend.append('location', announcementData.location);
+            formDataToSend.append('phone', announcementData.phone);
+            formDataToSend.append('category_id', announcementData.category_id);
+            formDataToSend.append('is_urgent', announcementData.is_urgent ? '1' : '0');
+            formDataToSend.append('is_promotional', announcementData.is_promotional ? '1' : '0');
+            
+            // Ajouter les données de paiement si disponibles
+            if (announcementData.payment_id) {
+                formDataToSend.append('payment_id', announcementData.payment_id);
+            }
+            if (announcementData.payment_ref) {
+                formDataToSend.append('payment_ref', announcementData.payment_ref);
+            }
             
             // Ajouter les fichiers médias
-            if (formData.media && formData.media.length > 0) {
-                formData.media.forEach((mediaItem, index) => {
+            if (announcementData.media && announcementData.media.length > 0) {
+                announcementData.media.forEach((mediaItem, index) => {
                     if (mediaItem.file) {
                         formDataToSend.append('media_files[]', mediaItem.file);
                     }
@@ -289,46 +305,33 @@ const CreateAnnouncement = () => {
         }
     };
 
-    const handlePayment = async () => {
-        setProcessingPayment(true);
-        
+    const handlePaymentSuccess = async (paymentData) => {
         try {
-            // Simulation du paiement - pour l'instant on valide tout automatiquement
-            const token = localStorage.getItem('token');
-            const paymentHeaders = {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            };
+            setProcessingPayment(true);
             
-            if (token) {
-                paymentHeaders['Authorization'] = `Bearer ${token}`;
-            }
-
-            const paymentResponse = await fetch('http://127.0.0.1:8000/api/v1/payments/promotional', {
-                method: 'POST',
-                headers: paymentHeaders,
-                body: JSON.stringify({
-                    amount: 500,
-                    currency: 'FCFA',
-                    type: 'promotional_announcement',
-                    user_id: user.id
-                })
-            });
-
-            // Pour l'instant, on considère que le paiement réussit toujours
-            if (true) { // paymentResponse.ok
-                setShowPaymentModal(false);
-                // Créer l'annonce après le paiement réussi
-                await createAnnouncement();
+            // Créer l'annonce avec les données sauvegardées
+            if (pendingAnnouncementData) {
+                // Ajouter le payment_id aux données de l'annonce
+                const announcementData = {
+                    ...pendingAnnouncementData,
+                    payment_id: paymentData.payment_id,
+                    payment_ref: paymentData.payment_ref
+                };
+                
+                await createAnnouncementDirectly(announcementData);
                 
                 // Envoyer une notification à tous les utilisateurs
                 await sendNotificationToAllUsers();
+                
+                setSuccess('🎉 Annonce promotionnelle créée et paiement initié avec succès !');
+                setTimeout(() => navigate('/my-announcements'), 2000);
             }
         } catch (error) {
-            console.error('Erreur lors du paiement:', error);
-            setError('Erreur lors du traitement du paiement');
+            console.error('Erreur après paiement:', error);
+            setError('Erreur lors de la création de l\'annonce après paiement');
         } finally {
             setProcessingPayment(false);
+            setPendingAnnouncementData(null);
         }
     };
 
@@ -750,76 +753,17 @@ const CreateAnnouncement = () => {
                             </Card.Body>
                         </Card>
 
-                        {/* Modal de paiement pour annonce promotionnelle */}
-                        <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
-                            <Modal.Header closeButton>
-                                <Modal.Title>💳 Paiement Annonce Promotionnelle</Modal.Title>
-                            </Modal.Header>
-                            <Modal.Body>
-                                <div className="text-center">
-                                    <div className="mb-4">
-                                        <h4 className="text-primary">🌟 Annonce Promotionnelle</h4>
-                                        <p className="text-muted">
-                                            Votre annonce sera mise en avant et une notification sera envoyée à tous les utilisateurs de la plateforme.
-                                        </p>
-                                    </div>
-
-                                    <Card className="border-primary mb-4">
-                                        <Card.Body>
-                                            <h6 className="fw-bold mb-3">Résumé de votre annonce :</h6>
-                                            <div className="text-start">
-                                                <p><strong>Titre :</strong> {formData.title}</p>
-                                                <p><strong>Prix :</strong> {formData.price} FCFA</p>
-                                                <p><strong>Localisation :</strong> {formData.location}</p>
-                                            </div>
-                                        </Card.Body>
-                                    </Card>
-
-                                    <div className="payment-details">
-                                        <Row className="align-items-center justify-content-center">
-                                            <Col md={8}>
-                                                <div className="d-flex justify-content-between border-top pt-3">
-                                                    <span>Frais de promotion :</span>
-                                                    <strong className="text-primary">500 FCFA</strong>
-                                                </div>
-                                            </Col>
-                                        </Row>
-                                    </div>
-
-                                    <Alert variant="info" className="mt-3">
-                                        <small>
-                                            <strong>📢 Avantages :</strong> Votre annonce apparaîtra en première position, 
-                                            aura un badge spécial "Promotionnelle" et tous les utilisateurs recevront une notification.
-                                        </small>
-                                    </Alert>
-
-                                    <Alert variant="success" className="mt-2">
-                                        <small>
-                                            <strong>✅ Paiement automatique :</strong> Pour le moment, tous les paiements sont validés automatiquement à des fins de test.
-                                        </small>
-                                    </Alert>
-                                </div>
-                            </Modal.Body>
-                            <Modal.Footer>
-                                <Button variant="secondary" onClick={() => setShowPaymentModal(false)} disabled={processingPayment}>
-                                    Annuler
-                                </Button>
-                                <Button 
-                                    variant="primary" 
-                                    onClick={handlePayment}
-                                    disabled={processingPayment}
-                                >
-                                    {processingPayment ? (
-                                        <>
-                                            <Spinner size="sm" className="me-2" />
-                                            Traitement...
-                                        </>
-                                    ) : (
-                                        '💳 Confirmer le paiement (500 FCFA)'
-                                    )}
-                                </Button>
-                            </Modal.Footer>
-                        </Modal>
+                        {/* Modal de paiement Monetbil pour annonce promotionnelle */}
+                        <PaymentModal
+                            show={showPaymentModal}
+                            onHide={() => {
+                                setShowPaymentModal(false);
+                                setPendingAnnouncementData(null);
+                            }}
+                            amount={500}
+                            type="promotional"
+                            onPaymentSuccess={handlePaymentSuccess}
+                        />
                     </Col>
                 </Row>
             </Container>

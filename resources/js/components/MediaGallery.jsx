@@ -50,7 +50,7 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
     // Si aucun média, retourner un placeholder simple
     if (allMedia.length === 0) {
         return (
-            <div className="position-relative d-flex align-items-center justify-content-center bg-light" style={{ height: '200px' }}>
+            <div className="position-relative d-flex align-items-center justify-content-center bg-light w-100 h-100">
                 <div className="text-center text-muted">
                     <div style={{ fontSize: '2rem' }}>📷</div>
                     <small>Aucune image</small>
@@ -81,8 +81,16 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
                         controls={false}
                         muted
                         preload="metadata"
-                        onMouseEnter={(e) => e.target.play()}
-                        onMouseLeave={(e) => e.target.pause()}
+                        playsInline
+                        loop
+                        onMouseEnter={(e) => {
+                            e.target.currentTime = 0;
+                            e.target.play().catch(() => {});
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.pause();
+                            e.target.currentTime = 0;
+                        }}
                         onError={(e) => {
                             console.error('Erreur chargement vidéo:', mediaItem.url, e);
                             e.target.style.display = 'none';
@@ -123,9 +131,17 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
                 <video
                     src={mediaItem.url}
                     className="d-block w-100"
-                    style={{ maxHeight: '70vh', objectFit: 'contain' }}
+                    style={{ maxHeight: '70vh', objectFit: 'contain', borderRadius: '8px' }}
                     controls
-                    autoPlay
+                    controlsList="nodownload"
+                    preload="metadata"
+                    playsInline
+                    onError={(e) => {
+                        console.error('Erreur chargement vidéo modal:', mediaItem.url);
+                        e.target.style.display = 'none';
+                    }}
+                    onLoadStart={() => console.log('Chargement vidéo démarré')}
+                    onCanPlay={() => console.log('Vidéo prête à être lue')}
                 />
             );
         } else {
@@ -134,11 +150,11 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
                     src={mediaItem.url}
                     alt={title}
                     className="d-block w-100"
-                    style={{ maxHeight: '70vh', objectFit: 'contain' }}
+                    style={{ maxHeight: '70vh', objectFit: 'contain', borderRadius: '8px' }}
                     onError={(e) => {
                         console.error('Erreur chargement image modal:', mediaItem.url);
                         e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjhmOWZhIi8+CjxwYXRoIGQ9Ik0xNTAgMTAwQzE1MCA4OS41IDEzOS41IDc5IDEyOSA3OUgxMTlDMTA4LjUgNzkgOTggODkuNSA5OCAxMDBWMTIwQzk4IDEzMC41IDEwOC41IDE0MSAxMTkgMTQxSDEyOUMxMzkuNSAxNDEgMTUwIDEzMC41IDE1MCAxMjBWMTAwWiIgZmlsbD0iI2RjZGNkYyIvPgo8cGF0aCBkPSJNMTgwIDEwMEMxODAgODkuNSAxNjkuNSA3OSAxNTkgNzlIMTQ5QzEzOC41IDc5IDEyOCA4OS41IDEyOCAxMDBWMTIwQzEyOCAxMzAuNSAxMzguNSAxNDEgMTQ5IDE0MUgxNTlDMTY5LjUgMTQxIDE4MCAxMzAuNSAxODAgMTIwVjEwMFoiIGZpbGw9IiNkY2RjZGMiLz4KPHRleHQgeD0iMTUwIiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2Yjc2ODQiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjUwMCI+SW1hZ2UgaW5kaXNwb25pYmxlPC90ZXh0Pgo8L3N2Zz4K';
-                        e.target.onerror = null; // Éviter la boucle infinie
+                        e.target.onerror = null;
                     }}
                 />
             );
@@ -148,10 +164,10 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
     return (
         <>
             {/* Affichage principal */}
-            <div className="position-relative">
+            <div className="position-relative w-100 h-100">
                 {renderMedia(allMedia[0], {
                     width: '100%',
-                    height: '200px',
+                    height: '100%',
                     cursor: 'pointer'
                 })}
                 
@@ -182,28 +198,30 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
             </div>
 
             {/* Modal galerie */}
-            <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
-                <Modal.Header closeButton>
+            <Modal show={showModal} onHide={() => setShowModal(false)} size="xl" centered>
+                <Modal.Header closeButton className="bg-dark text-white">
                     <Modal.Title>
-                        📸 {title} ({activeIndex + 1}/{allMedia.length})
+                        {allMedia[activeIndex]?.type === 'video' ? '🎥' : '📸'} {title} ({activeIndex + 1}/{allMedia.length})
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body className="p-0">
+                <Modal.Body className="p-0 bg-dark">
                     <Carousel
                         activeIndex={activeIndex}
                         onSelect={(selectedIndex) => setActiveIndex(selectedIndex)}
                         indicators={allMedia.length > 1}
                         controls={allMedia.length > 1}
                         interval={null}
+                        variant="dark"
                     >
                         {allMedia.map((mediaItem, index) => (
                             <Carousel.Item key={index}>
-                                <div className="d-flex justify-content-center bg-dark">
+                                <div className="d-flex justify-content-center align-items-center bg-dark" style={{ minHeight: '70vh' }}>
                                     {renderMediaInModal(mediaItem)}
                                 </div>
                                 {mediaItem.type === 'video' && (
-                                    <Carousel.Caption className="bg-dark bg-opacity-50 rounded">
-                                        <p>🎥 Vidéo {index + 1}</p>
+                                    <Carousel.Caption className="bg-dark bg-opacity-75 rounded mx-auto" style={{ maxWidth: '300px' }}>
+                                        <p className="mb-1">🎥 Vidéo {index + 1}</p>
+                                        <small className="text-muted">Utilisez les contrôles pour lire, mettre en pause ou ajuster le volume</small>
                                     </Carousel.Caption>
                                 )}
                             </Carousel.Item>
@@ -211,15 +229,15 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
                     </Carousel>
                 </Modal.Body>
                 {allMedia.length > 1 && (
-                    <Modal.Footer className="justify-content-center">
-                        <div className="d-flex gap-2 flex-wrap">
+                    <Modal.Footer className="justify-content-center bg-dark border-0">
+                        <div className="d-flex gap-2 flex-wrap justify-content-center">
                             {allMedia.map((mediaItem, index) => (
                                 <div
                                     key={index}
                                     className={`position-relative border rounded overflow-hidden ${
                                         index === activeIndex ? 'border-primary border-3' : 'border-secondary'
                                     }`}
-                                    style={{ cursor: 'pointer', width: '60px', height: '60px' }}
+                                    style={{ cursor: 'pointer', width: '80px', height: '60px' }}
                                     onClick={() => setActiveIndex(index)}
                                 >
                                     {renderMedia(mediaItem, {
@@ -228,9 +246,16 @@ const MediaGallery = ({ media = [], images = [], title = "Médias", onImageClick
                                     })}
                                     {mediaItem.type === 'video' && (
                                         <div className="position-absolute top-50 start-50 translate-middle">
-                                            <span style={{ color: 'white', fontSize: '12px' }}>▶️</span>
+                                            <div className="bg-dark bg-opacity-75 rounded-circle p-1">
+                                                <span style={{ color: 'white', fontSize: '10px' }}>▶️</span>
+                                            </div>
                                         </div>
                                     )}
+                                    <div className="position-absolute bottom-0 start-0 w-100 text-center bg-dark bg-opacity-75">
+                                        <small className="text-white" style={{ fontSize: '9px' }}>
+                                            {index + 1}
+                                        </small>
+                                    </div>
                                 </div>
                             ))}
                         </div>

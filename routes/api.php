@@ -146,9 +146,27 @@ Route::prefix('v1')->group(function () {
     
     // Paiements - temporairement publics pour les tests
     Route::post('/payments/promotional', [PaymentController::class, 'processPromotionalPayment']);
+    Route::post('/payments/initiate', [PaymentController::class, 'initiatePayment']);
+    Route::post('/payment/notify', [PaymentController::class, 'handleNotification']); // Webhook Monetbil
     Route::get('/payments/user/{userId?}', [PaymentController::class, 'getUserPayments']);
     Route::get('/payments/stats', [PaymentController::class, 'getPaymentStats']);
     Route::put('/payments/{paymentId}/validate', [PaymentController::class, 'validatePayment']);
+    
+    // Test d'authentification
+    Route::get('/auth/test', function() {
+        $user = Auth::user();
+        if ($user) {
+            return response()->json([
+                'success' => true,
+                'user' => $user,
+                'message' => 'Utilisateur authentifié'
+            ]);
+        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Non authentifié'
+        ], 401);
+    })->middleware('auth:sanctum');
     
     // Notifications publiques (broadcast admin)
     Route::post('/notifications/broadcast', [NotificationController::class, 'broadcastNotification']);

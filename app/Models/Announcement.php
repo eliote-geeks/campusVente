@@ -58,6 +58,16 @@ class Announcement extends Model
         return $this->hasMany(AnnouncementView::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function promotionalPayment()
+    {
+        return $this->hasOne(Payment::class)->where('type', 'promotional');
+    }
+
     public function isLikedBy($userId)
     {
         return $this->likes()->where('user_id', $userId)->exists();

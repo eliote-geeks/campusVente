@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'monetbil' => [
+        'service_key' => env('MONETBIL_SERVICE_KEY', 'L5rXOzz3tvh7LMyYjELj6PS5FrbwtmhN'),
+        'service_secret' => env('MONETBIL_SERVICE_SECRET', 'ZTWcGQ583Ws5V6QjGjM6ongL9YvK7MEwreXCIAQY4rnVXcleYeSd20dwHmfYkQK6'),
+        'widget_version' => env('MONETBIL_WIDGET_VERSION', 'v2.1'),
+        'currency' => env('MONETBIL_CURRENCY', 'XAF'),
+        'country' => env('MONETBIL_COUNTRY', 'CM'),
+        'lang' => env('MONETBIL_LANG', 'fr'),
+    ],
+
 ];

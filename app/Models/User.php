@@ -80,6 +80,16 @@ class User extends Authenticatable
         return $this->hasMany(UserRating::class, 'rated_user_id');
     }
 
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function completedPayments()
+    {
+        return $this->hasMany(Payment::class)->where('status', 'completed');
+    }
+
     // Méthodes pour gérer les notes
     public function getAverageRatingAttribute()
     {
