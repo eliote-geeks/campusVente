@@ -255,9 +255,25 @@ small {
     padding-top: 80px !important;
 }
 
-/* Ajustement pour le body pour éviter le chevauchement */
+/* Ajustement pour le body pour éviter le chevauchement du header fixe */
 body {
-    padding-top: 0;
+    padding-top: 80px;
+}
+
+/* Ajustement spécifique pour éviter le double padding sur les pages spécifiques */
+.dating-container {
+    padding-top: 2rem !important;
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+    body {
+        padding-top: 70px;
+    }
+    
+    .dating-container {
+        padding-top: 1.5rem !important;
+    }
 }
 
 .sidebar-modern {

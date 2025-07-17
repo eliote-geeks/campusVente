@@ -161,7 +161,7 @@ class AnnouncementController extends Controller
         // Envoyer notification à tous les utilisateurs si annonce promotionnelle
         try {
             if ($announcement->is_promotional) {
-                $users = User::where('is_active', true)
+                $users = User::where('verified', true)
                     ->where('id', '!=', $announcement->user_id)
                     ->get();
                     

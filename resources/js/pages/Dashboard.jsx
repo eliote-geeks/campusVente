@@ -18,6 +18,8 @@ const Dashboard = () => {
     const [universities, setUniversities] = useState([]);
     const [meetings, setMeetings] = useState([]);
     const [recentActivity, setRecentActivity] = useState([]);
+    const [payments, setPayments] = useState([]);
+    const [paymentStats, setPaymentStats] = useState({});
     
     // States pour les modals
     const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -90,6 +92,39 @@ const Dashboard = () => {
         ]
     };
 
+    // Données mock pour les paiements
+    const mockPaymentData = [
+        { id: 1, payment_ref: 'PREMIUM_1752745307_1', user: 'Marie Dupont', email: 'marie@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'completed', created_at: '2025-01-15 10:30:00', completed_at: '2025-01-15 10:35:00' },
+        { id: 2, payment_ref: 'PROMO_1752745208_2', user: 'Paul Martin', email: 'paul@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-14 14:20:00', completed_at: '2025-01-14 14:25:00' },
+        { id: 3, payment_ref: 'PREMIUM_1752745109_3', user: 'Sophie Legrand', email: 'sophie@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'failed', created_at: '2025-01-13 09:15:00', failure_reason: 'Paiement annulé par l\'utilisateur' },
+        { id: 4, payment_ref: 'PROMO_1752745010_4', user: 'Lucas Dubois', email: 'lucas@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-12 16:45:00', completed_at: '2025-01-12 16:50:00' },
+        { id: 5, payment_ref: 'PREMIUM_1752744911_5', user: 'Amélie Rousseau', email: 'amelie@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'pending', created_at: '2025-01-11 11:20:00' },
+        { id: 6, payment_ref: 'MEETING_1752744812_6', user: 'Thomas Moreau', email: 'thomas@example.com', amount: 200, currency: 'XAF', type: 'meeting', status: 'completed', created_at: '2025-01-10 13:30:00', completed_at: '2025-01-10 13:35:00' },
+        { id: 7, payment_ref: 'PREMIUM_1752744713_7', user: 'Emma Laurent', email: 'emma@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'failed', created_at: '2025-01-09 15:10:00', failure_reason: 'Fonds insuffisants' },
+        { id: 8, payment_ref: 'PROMO_1752744614_8', user: 'Hugo Petit', email: 'hugo@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-08 08:50:00', completed_at: '2025-01-08 08:55:00' }
+    ];
+
+    const mockPaymentStats = {
+        totalPayments: 156,
+        totalRevenue: 89500, // en FCFA
+        successfulPayments: 120,
+        failedPayments: 36,
+        pendingPayments: 8,
+        premiumDatingPayments: 45,
+        premiumDatingRevenue: 45000,
+        promotionalPayments: 89,
+        promotionalRevenue: 44500,
+        meetingPayments: 22,
+        meetingRevenue: 4400,
+        monthlyGrowth: 23.5, // en pourcentage
+        averagePayment: 574,
+        topPaymentMethods: [
+            { method: 'Mobile Money', count: 98, percentage: 62.8 },
+            { method: 'Orange Money', count: 35, percentage: 22.4 },
+            { method: 'MTN Money', count: 23, percentage: 14.8 }
+        ]
+    };
+
     // Chargement initial
     useEffect(() => {
         const loadData = async () => {
@@ -113,6 +148,8 @@ const Dashboard = () => {
             await fetchMeetings();
             await fetchStats();
             await fetchRecentActivity();
+            await fetchPayments();
+            await fetchPaymentStats();
             
             setLoading(false);
         };
@@ -206,6 +243,34 @@ const Dashboard = () => {
             console.error('Error fetching recent activity:', error);
             // Fallback to mock data if API fails
             setRecentActivity(mockData.recentActivity);
+        }
+    };
+
+    const fetchPayments = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/payments/user');
+            const data = await response.json();
+            if (data.success) {
+                setPayments(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching payments:', error);
+            // Fallback to mock data if API fails
+            setPayments(mockPaymentData);
+        }
+    };
+
+    const fetchPaymentStats = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/v1/payments/stats');
+            const data = await response.json();
+            if (data.success) {
+                setPaymentStats(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching payment stats:', error);
+            // Fallback to mock data if API fails
+            setPaymentStats(mockPaymentStats);
         }
     };
 
@@ -1933,6 +1998,18 @@ const Dashboard = () => {
                                     🤝 Rencontres
                                 </Nav.Link>
                             </Nav.Item>
+                            <Nav.Item>
+                                <Nav.Link 
+                                    active={activeTab === 'payments'} 
+                                    onClick={() => {
+                                        setActiveTab('payments');
+                                        setCurrentPage(1);
+                                        setSearchTerm('');
+                                    }}
+                                >
+                                    💳 Paiements
+                                </Nav.Link>
+                            </Nav.Item>
                         </Nav>
                     </Col>
                 </Row>
@@ -1944,6 +2021,7 @@ const Dashboard = () => {
                 {activeTab === 'categories' && renderCategoriesManagement()}
                 {activeTab === 'universities' && renderUniversitiesManagement()}
                 {activeTab === 'meetings' && renderMeetingsManagement()}
+                {activeTab === 'payments' && renderPaymentsManagement()}
 
                 {/* Modal pour les catégories */}
                 <Modal show={showCategoryModal} onHide={() => setShowCategoryModal(false)} size="lg">

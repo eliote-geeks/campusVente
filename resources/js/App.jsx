@@ -16,6 +16,7 @@ import CreateAnnouncement from './pages/CreateAnnouncement.jsx';
 import Meetings from './pages/Meetings.jsx';
 import University from './pages/University.jsx';
 import Students from './pages/Students.jsx';
+import Dating from './pages/Dating.jsx';
 import StudentProfile from './pages/StudentProfile.jsx';
 import MyAnnouncements from './pages/MyAnnouncements.jsx';
 import Favorites from './pages/Favorites.jsx';
@@ -140,6 +141,14 @@ const AppContent = () => {
                             element={
                                 <PrivateRoute>
                                     <Students />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/dating" 
+                            element={
+                                <PrivateRoute>
+                                    <Dating />
                                 </PrivateRoute>
                             } 
                         />

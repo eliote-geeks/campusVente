@@ -35,8 +35,8 @@ class NotificationController extends Controller
                 ], 422);
             }
 
-            // Récupérer tous les utilisateurs actifs
-            $users = User::where('is_active', true)->get();
+            // Récupérer tous les utilisateurs actifs (utilise 'verified' à la place de 'is_active')
+            $users = User::where('verified', true)->get();
             
             // Créer une notification personnalisée
             $notificationData = [

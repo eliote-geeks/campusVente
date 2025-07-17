@@ -148,9 +148,17 @@ Route::prefix('v1')->group(function () {
     Route::post('/payments/promotional', [PaymentController::class, 'processPromotionalPayment']);
     Route::post('/payments/initiate', [PaymentController::class, 'initiatePayment']);
     Route::post('/payment/notify', [PaymentController::class, 'handleNotification']); // Webhook Monetbil
+    Route::put('/payments/{paymentId}/validate', [PaymentController::class, 'validatePayment']);
+    
+    // Routes callbacks Monetbil pour l'abonnement Premium Dating
+    Route::post('/monetbil/notify', [PaymentController::class, 'handleMonetbilNotification']);
+    Route::get('/monetbil/success', [PaymentController::class, 'handleMonetbilSuccess']);
+    Route::get('/monetbil/failed', [PaymentController::class, 'handleMonetbilFailed']);
+    Route::post('/payments/premium-dating', [PaymentController::class, 'initiatePremiumDatingPayment']);
+    
+    // Routes pour le dashboard des paiements (temporairement publiques)
     Route::get('/payments/user/{userId?}', [PaymentController::class, 'getUserPayments']);
     Route::get('/payments/stats', [PaymentController::class, 'getPaymentStats']);
-    Route::put('/payments/{paymentId}/validate', [PaymentController::class, 'validatePayment']);
     
     // Test d'authentification
     Route::get('/auth/test', function() {
