@@ -110,7 +110,7 @@ const Navigation = () => {
                         <Nav.Link as={Link} to="/students" className="fw-semibold text-dark px-3">
                             👥 Étudiants
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/dating" className="fw-semibold text-danger px-3">
+                        <Nav.Link as={Link} to="/campus-love" className="fw-semibold text-danger px-3">
                             💕 CampusLove
                         </Nav.Link>
                     </Nav>

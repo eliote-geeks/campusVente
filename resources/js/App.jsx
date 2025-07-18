@@ -16,13 +16,13 @@ import CreateAnnouncement from './pages/CreateAnnouncement.jsx';
 import Meetings from './pages/Meetings.jsx';
 import University from './pages/University.jsx';
 import Students from './pages/Students.jsx';
-import Dating from './pages/Dating.jsx';
 import StudentProfile from './pages/StudentProfile.jsx';
 import MyAnnouncements from './pages/MyAnnouncements.jsx';
 import Favorites from './pages/Favorites.jsx';
 import MyRatings from './pages/MyRatings.jsx';
 import Notifications from './pages/Notifications.jsx';
 import EditAnnouncement from './pages/EditAnnouncement.jsx';
+import CampusLove from './pages/CampusLove.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 
 // Composant pour protéger les routes privées
@@ -145,14 +145,6 @@ const AppContent = () => {
                             } 
                         />
                         <Route 
-                            path="/dating" 
-                            element={
-                                <PrivateRoute>
-                                    <Dating />
-                                </PrivateRoute>
-                            } 
-                        />
-                        <Route 
                             path="/student/:id" 
                             element={
                                 <PrivateRoute>
@@ -197,6 +189,14 @@ const AppContent = () => {
                             element={
                                 <PrivateRoute>
                                     <EditAnnouncement />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/campus-love" 
+                            element={
+                                <PrivateRoute>
+                                    <CampusLove />
                                 </PrivateRoute>
                             } 
                         />

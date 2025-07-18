@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, InputGroup, Nav, Alert, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, InputGroup, Nav, Alert, Spinner, Pagination } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const Dashboard = () => {
@@ -94,26 +94,21 @@ const Dashboard = () => {
 
     // Données mock pour les paiements
     const mockPaymentData = [
-        { id: 1, payment_ref: 'PREMIUM_1752745307_1', user: 'Marie Dupont', email: 'marie@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'completed', created_at: '2025-01-15 10:30:00', completed_at: '2025-01-15 10:35:00' },
-        { id: 2, payment_ref: 'PROMO_1752745208_2', user: 'Paul Martin', email: 'paul@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-14 14:20:00', completed_at: '2025-01-14 14:25:00' },
-        { id: 3, payment_ref: 'PREMIUM_1752745109_3', user: 'Sophie Legrand', email: 'sophie@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'failed', created_at: '2025-01-13 09:15:00', failure_reason: 'Paiement annulé par l\'utilisateur' },
-        { id: 4, payment_ref: 'PROMO_1752745010_4', user: 'Lucas Dubois', email: 'lucas@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-12 16:45:00', completed_at: '2025-01-12 16:50:00' },
-        { id: 5, payment_ref: 'PREMIUM_1752744911_5', user: 'Amélie Rousseau', email: 'amelie@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'pending', created_at: '2025-01-11 11:20:00' },
-        { id: 6, payment_ref: 'MEETING_1752744812_6', user: 'Thomas Moreau', email: 'thomas@example.com', amount: 200, currency: 'XAF', type: 'meeting', status: 'completed', created_at: '2025-01-10 13:30:00', completed_at: '2025-01-10 13:35:00' },
-        { id: 7, payment_ref: 'PREMIUM_1752744713_7', user: 'Emma Laurent', email: 'emma@example.com', amount: 1000, currency: 'XAF', type: 'premium_dating', status: 'failed', created_at: '2025-01-09 15:10:00', failure_reason: 'Fonds insuffisants' },
-        { id: 8, payment_ref: 'PROMO_1752744614_8', user: 'Hugo Petit', email: 'hugo@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-08 08:50:00', completed_at: '2025-01-08 08:55:00' }
+        { id: 1, payment_ref: 'PROMO_1752745208_2', user: 'Paul Martin', email: 'paul@example.com', amount: 1, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-14 14:20:00', completed_at: '2025-01-14 14:25:00' },
+        { id: 2, payment_ref: 'PROMO_1752745010_4', user: 'Lucas Dubois', email: 'lucas@example.com', amount: 1, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-12 16:45:00', completed_at: '2025-01-12 16:50:00' },
+        { id: 3, payment_ref: 'MEETING_1752744812_6', user: 'Thomas Moreau', email: 'thomas@example.com', amount: 200, currency: 'XAF', type: 'meeting', status: 'completed', created_at: '2025-01-10 13:30:00', completed_at: '2025-01-10 13:35:00' },
+        { id: 4, payment_ref: 'PROMO_1752744614_8', user: 'Hugo Petit', email: 'hugo@example.com', amount: 1, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-08 08:50:00', completed_at: '2025-01-08 08:55:00' },
+        { id: 5, payment_ref: 'MEETING_1752744515_9', user: 'Claire Dubois', email: 'claire@example.com', amount: 150, currency: 'XAF', type: 'meeting', status: 'pending', created_at: '2025-01-07 14:20:00' }
     ];
 
     const mockPaymentStats = {
-        totalPayments: 156,
-        totalRevenue: 89500, // en FCFA
-        successfulPayments: 120,
-        failedPayments: 36,
+        totalPayments: 111,
+        totalRevenue: 44500, // en FCFA
+        successfulPayments: 85,
+        failedPayments: 18,
         pendingPayments: 8,
-        premiumDatingPayments: 45,
-        premiumDatingRevenue: 45000,
         promotionalPayments: 89,
-        promotionalRevenue: 44500,
+        promotionalRevenue: 89, // 89 x 1 FCFA
         meetingPayments: 22,
         meetingRevenue: 4400,
         monthlyGrowth: 23.5, // en pourcentage
@@ -1118,7 +1113,7 @@ const Dashboard = () => {
     const renderCategoriesManagement = () => {
         // Filtrer les catégories
         const filteredCategories = categories.filter(cat => 
-            cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (cat.name && cat.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (cat.description && cat.description.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
@@ -1332,8 +1327,8 @@ const Dashboard = () => {
                                     </thead>
                                     <tbody>
                                         {users.filter(user => 
-                                            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                            (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
                                             (user.university && user.university.toLowerCase().includes(searchTerm.toLowerCase()))
                                         ).map(user => (
                                             <tr key={user.id}>
@@ -1447,9 +1442,16 @@ const Dashboard = () => {
                                     </thead>
                                     <tbody>
                                         {announcements.filter(ann => 
-                                            ann.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            (ann.category && ann.category.name && ann.category.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                                            (ann.user && ann.user.name && ann.user.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            (ann.title && ann.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                            (ann.category && (
+                                                (typeof ann.category === 'string' && ann.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                                (typeof ann.category === 'object' && ann.category.name && ann.category.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            )) ||
+                                            (ann.user && (
+                                                (typeof ann.user === 'string' && ann.user.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                                (typeof ann.user === 'object' && ann.user.name && ann.user.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            )) ||
+                                            (ann.author && ann.author.toLowerCase().includes(searchTerm.toLowerCase()))
                                         ).map(announcement => (
                                             <tr key={announcement.id}>
                                                 <td>
@@ -1460,7 +1462,10 @@ const Dashboard = () => {
                                                 </td>
                                                 <td>
                                                     <Badge bg="secondary" pill>
-                                                        {announcement.category ? announcement.category.icon + ' ' + announcement.category.name : 'N/A'}
+                                                        {announcement.category ? 
+                                                            (typeof announcement.category === 'string' ? announcement.category : 
+                                                             (announcement.category.icon || '') + ' ' + (announcement.category.name || announcement.category)) : 
+                                                            'N/A'}
                                                     </Badge>
                                                 </td>
                                                 <td>
@@ -1475,7 +1480,9 @@ const Dashboard = () => {
                                                     {announcement.price} FCFA
                                                     {announcement.is_urgent && <Badge bg="warning" className="ms-2">URGENT</Badge>}
                                                 </td>
-                                                <td>{announcement.user ? announcement.user.name : 'N/A'}</td>
+                                                <td>{announcement.user ? 
+                                                    (typeof announcement.user === 'string' ? announcement.user : announcement.user.name) : 
+                                                    announcement.author || 'N/A'}</td>
                                                 <td>
                                                     <Badge bg={getStatusColor(announcement.status)} pill>
                                                         {announcement.status === 'pending' ? '⏳ En attente' : 
@@ -1578,8 +1585,8 @@ const Dashboard = () => {
                                     </thead>
                                     <tbody>
                                         {universities.filter(uni => 
-                                            uni.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            uni.city.toLowerCase().includes(searchTerm.toLowerCase())
+                                            (uni.name && uni.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                            (uni.city && uni.city.toLowerCase().includes(searchTerm.toLowerCase()))
                                         ).map(university => (
                                             <tr key={university.id}>
                                                 <td>
@@ -1650,9 +1657,9 @@ const Dashboard = () => {
     const renderMeetingsManagement = () => {
         // Filtrer les rencontres
         const filteredMeetings = meetings.filter(meeting => 
-            meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            meeting.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            meeting.location.toLowerCase().includes(searchTerm.toLowerCase())
+            (meeting.title && meeting.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (meeting.description && meeting.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (meeting.location && meeting.location.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
         // Pagination
@@ -1901,6 +1908,158 @@ const Dashboard = () => {
             console.error('Error deleting meeting:', error);
             alert('Erreur lors de la suppression de la rencontre');
         }
+    };
+
+    const renderPaymentsManagement = () => {
+        // Filtrer les paiements
+        const filteredPayments = payments.filter(payment => 
+            (payment.user && payment.user.toLowerCase && payment.user.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (payment.payment_ref && payment.payment_ref.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (payment.type && payment.type.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+
+        // Pagination
+        const indexOfLastItem = currentPage * itemsPerPage;
+        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+        const currentItems = filteredPayments.slice(indexOfFirstItem, indexOfLastItem);
+        const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+
+        return (
+            <Container fluid>
+                <Row>
+                    <Col>
+                        <Card className="shadow-sm border-0">
+                            <Card.Header className="bg-light">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h5 className="mb-0 fw-bold">💳 Gestion des paiements</h5>
+                                </div>
+                            </Card.Header>
+                            <Card.Body>
+                                <Row className="mb-3">
+                                    <Col md={6}>
+                                        <InputGroup>
+                                            <InputGroup.Text>🔍</InputGroup.Text>
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Rechercher un paiement..."
+                                                value={searchTerm}
+                                                onChange={(e) => {
+                                                    setSearchTerm(e.target.value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            />
+                                        </InputGroup>
+                                    </Col>
+                                    <Col md={6}>
+                                        <div className="text-end">
+                                            <small className="text-muted">
+                                                {filteredPayments.length} paiement(s) trouvé(s)
+                                            </small>
+                                        </div>
+                                    </Col>
+                                </Row>
+
+                                <div className="table-responsive">
+                                    <Table striped hover>
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Référence</th>
+                                                <th>Utilisateur</th>
+                                                <th>Montant</th>
+                                                <th>Type</th>
+                                                <th>Statut</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {currentItems.map(payment => (
+                                                <tr key={payment.id}>
+                                                    <td>
+                                                        <code>{payment.payment_ref}</code>
+                                                    </td>
+                                                    <td>
+                                                        <div>
+                                                            <strong>{payment.user}</strong>
+                                                            <br />
+                                                            <small className="text-muted">{payment.email}</small>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <strong>{payment.amount.toLocaleString()} {payment.currency}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <Badge bg={
+                                                            payment.type === 'promotional' ? 'primary' :
+                                                            payment.type === 'meeting' ? 'info' :
+                                                            'secondary'
+                                                        }>
+                                                            {payment.type === 'promotional' ? 'Promotionnel' :
+                                                             payment.type === 'meeting' ? 'Réunion' :
+                                                             payment.type}
+                                                        </Badge>
+                                                    </td>
+                                                    <td>
+                                                        <Badge bg={
+                                                            payment.status === 'completed' ? 'success' :
+                                                            payment.status === 'pending' ? 'warning' :
+                                                            'danger'
+                                                        }>
+                                                            {payment.status === 'completed' ? 'Complété' :
+                                                             payment.status === 'pending' ? 'En attente' :
+                                                             'Échoué'}
+                                                        </Badge>
+                                                    </td>
+                                                    <td>
+                                                        <small>{new Date(payment.created_at).toLocaleString()}</small>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </Table>
+                                </div>
+
+                                {/* Pagination */}
+                                {totalPages > 1 && (
+                                    <Row className="mt-3">
+                                        <Col className="d-flex justify-content-center">
+                                            <Pagination>
+                                                <Pagination.First 
+                                                    onClick={() => setCurrentPage(1)}
+                                                    disabled={currentPage === 1}
+                                                />
+                                                <Pagination.Prev 
+                                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                                    disabled={currentPage === 1}
+                                                />
+                                                
+                                                {Array.from({ length: totalPages }, (_, index) => (
+                                                    <Pagination.Item
+                                                        key={index + 1}
+                                                        active={index + 1 === currentPage}
+                                                        onClick={() => setCurrentPage(index + 1)}
+                                                    >
+                                                        {index + 1}
+                                                    </Pagination.Item>
+                                                ))}
+                                                
+                                                <Pagination.Next 
+                                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                                    disabled={currentPage === totalPages}
+                                                />
+                                                <Pagination.Last 
+                                                    onClick={() => setCurrentPage(totalPages)}
+                                                    disabled={currentPage === totalPages}
+                                                />
+                                            </Pagination>
+                                        </Col>
+                                    </Row>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            </Container>
+        );
     };
 
     return (

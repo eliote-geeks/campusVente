@@ -157,7 +157,7 @@ class AnnouncementController extends Controller
             'user_id' => auth()->id(),
             'is_urgent' => $request->is_urgent ?? false,
             'is_promotional' => $request->is_promotional ?? false,
-            'promotional_fee' => $request->is_promotional ? 500 : null,
+            'promotional_fee' => $request->is_promotional ? 1 : null,
             'promoted_at' => $request->is_promotional ? now() : null,
             'images' => $images,
             'media' => $media,
@@ -417,7 +417,7 @@ class AnnouncementController extends Controller
         // Si l'annonce devient promotionnelle
         if ($request->is_promotional && !$announcement->is_promotional) {
             $updateData['is_promotional'] = true;
-            $updateData['promotional_fee'] = 500;
+            $updateData['promotional_fee'] = 1;
             $updateData['promoted_at'] = now();
         }
 
@@ -512,7 +512,7 @@ class AnnouncementController extends Controller
         // Si l'annonce devient promotionnelle
         if ($request->is_promotional && !$announcement->is_promotional) {
             $updateData['is_promotional'] = true;
-            $updateData['promotional_fee'] = 500;
+            $updateData['promotional_fee'] = 1;
             $updateData['promoted_at'] = now();
         }
 
@@ -640,7 +640,7 @@ class AnnouncementController extends Controller
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des annonces',
                 'error' => $e->getMessage()
-            ], 500);
+            ], 1);
         }
     }
 }

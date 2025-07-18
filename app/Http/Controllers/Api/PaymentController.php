@@ -21,8 +21,8 @@ class PaymentController extends Controller
     {
         $this->monetbilService = $monetbilService;
         
-        // Authentification requise pour tous les paiements sauf les notifications webhook et premium dating (temporaire)
-        $this->middleware('auth:sanctum')->except(['handleNotification', 'handleMonetbilNotification', 'handleMonetbilSuccess', 'handleMonetbilFailed', 'initiatePremiumDatingPayment', 'getUserPayments', 'getPaymentStats']);
+        // Authentification requise pour tous les paiements sauf les notifications webhook
+        $this->middleware('auth:sanctum')->except(['handleNotification', 'handleMonetbilSuccess', 'handleMonetbilFailed', 'getUserPayments', 'getPaymentStats']);
     }
 
     /**
@@ -39,7 +39,7 @@ class PaymentController extends Controller
             ]);
             
             $validator = Validator::make($request->all(), [
-                'amount' => 'required|numeric|min:100',
+                'amount' => 'required|numeric|min:1',
                 'type' => 'required|in:promotional,meeting,commission',
                 'announcement_id' => 'nullable|exists:announcements,id',
                 'meeting_id' => 'nullable|exists:meetings,id',
@@ -204,15 +204,6 @@ class PaymentController extends Controller
                     // Actions spécifiques aux réunions
                     break;
                     
-                case 'premium_dating':
-                    // Activer l'abonnement premium dating
-                    if ($payment->user) {
-                        $payment->user->update([
-                            'is_premium_dating' => true,
-                            'premium_dating_expires_at' => now()->addMonth()
-                        ]);
-                    }
-                    break;
             }
 
             // Envoyer une notification à l'utilisateur
@@ -318,9 +309,6 @@ class PaymentController extends Controller
             $failedPayments = Payment::where('status', 'failed')->count();
             $pendingPayments = Payment::where('status', 'pending')->count();
             
-            $premiumDatingPayments = Payment::where('type', 'premium_dating')->count();
-            $premiumDatingRevenue = Payment::where('type', 'premium_dating')->where('status', 'completed')->sum('amount');
-            
             $promotionalPayments = Payment::where('type', 'promotional')->count();
             $promotionalRevenue = Payment::where('type', 'promotional')->where('status', 'completed')->sum('amount');
             
@@ -342,8 +330,6 @@ class PaymentController extends Controller
                 'successfulPayments' => $successfulPayments,
                 'failedPayments' => $failedPayments,
                 'pendingPayments' => $pendingPayments,
-                'premiumDatingPayments' => $premiumDatingPayments,
-                'premiumDatingRevenue' => (float) $premiumDatingRevenue,
                 'promotionalPayments' => $promotionalPayments,
                 'promotionalRevenue' => (float) $promotionalRevenue,
                 'meetingPayments' => $meetingPayments,
@@ -408,164 +394,6 @@ class PaymentController extends Controller
     }
 
     /**
-     * Initier un paiement pour l'abonnement Premium Dating (version améliorée)
-     */
-    public function initiatePremiumDatingPayment(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'phone' => 'required|string|min:8',
-                'email' => 'required|email',
-                'user_id' => 'required|exists:users,id'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Données invalides',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $user = User::find($request->user_id);
-            
-            // Vérifier si l'utilisateur n'a pas déjà un abonnement actif
-            if ($user->is_premium_dating && $user->premium_dating_expires_at > now()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous avez déjà un abonnement Premium actif'
-                ], 400);
-            }
-
-            // Générer une référence de paiement unique
-            $paymentRef = 'PREMIUM_' . time() . '_' . $user->id;
-
-            // Créer le paiement
-            $payment = Payment::create([
-                'user_id' => $user->id,
-                'amount' => 1000, // 1000 FCFA
-                'currency' => 'XAF',
-                'type' => 'premium_dating',
-                'status' => 'pending',
-                'phone' => $request->phone,
-                'email' => $request->email,
-                'payment_ref' => $paymentRef,
-                'notes' => 'Abonnement Premium Dating - 1 mois'
-            ]);
-
-            // Utiliser la nouvelle méthode simplifiée pour générer l'URL de paiement
-            $paymentParams = [
-                'payment_ref' => $paymentRef,
-                'user_id' => $user->id,
-                'phone' => $request->phone,
-                'email' => $request->email,
-                'first_name' => explode(' ', $user->name)[0] ?? $user->name,
-                'last_name' => explode(' ', $user->name)[1] ?? ''
-            ];
-
-            $result = $this->monetbilService->initiatePremiumDatingPayment($paymentParams);
-
-            if ($result['success']) {
-                // Mettre à jour le paiement avec l'URL générée
-                $payment->update([
-                    'monetbil_payment_url' => $result['payment_url'],
-                    'monetbil_data' => $result['payment_data']
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Paiement initié avec succès',
-                    'data' => [
-                        'payment_id' => $payment->id,
-                        'payment_ref' => $payment->payment_ref,
-                        'amount' => $payment->amount,
-                        'currency' => $payment->currency,
-                        'payment_url' => $result['payment_url'],
-                        'service_key' => config('services.monetbil.service_key'),
-                        'user_info' => [
-                            'email' => $request->email,
-                            'phone' => $request->phone,
-                            'name' => $user->name
-                        ]
-                    ]
-                ]);
-            } else {
-                $payment->update(['status' => 'failed', 'error_message' => $result['error']]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Erreur lors de la génération de l\'URL de paiement',
-                    'error' => $result['error']
-                ], 400);
-            }
-
-        } catch (\Exception $e) {
-            Log::error('Erreur initiation paiement premium dating: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'initiation du paiement'
-            ], 500);
-        }
-    }
-
-    /**
-     * Gérer les notifications Monetbil pour Premium Dating (version améliorée)
-     */
-    public function handleMonetbilNotification(Request $request)
-    {
-        try {
-            Log::info('Notification Monetbil reçue', $request->all());
-
-            // Utiliser le service pour traiter la notification
-            $result = $this->monetbilService->processNotification($request->all());
-
-            if (!$result['success']) {
-                Log::error('Erreur traitement notification: ' . $result['error']);
-                return response()->json(['status' => 'error'], 400);
-            }
-
-            $paymentRef = $result['payment_ref'];
-            if (!$paymentRef) {
-                Log::error('Payment reference manquante dans la notification');
-                return response()->json(['status' => 'error'], 400);
-            }
-
-            // Trouver le paiement
-            $payment = Payment::where('payment_ref', $paymentRef)->first();
-            
-            if (!$payment) {
-                Log::error('Paiement introuvable: ' . $paymentRef);
-                return response()->json(['status' => 'payment_not_found'], 404);
-            }
-
-            // Mettre à jour le statut selon la réponse Monetbil
-            if ($result['payment_status'] === 'success') {
-                $payment->update([
-                    'status' => 'completed',
-                    'transaction_id' => $result['transaction_id'],
-                    'completed_at' => now()
-                ]);
-
-                // Effectuer les actions post-paiement selon le type
-                $this->processPostPaymentActions($payment);
-
-                Log::info('Paiement complété: ' . $paymentRef);
-            } else {
-                $payment->update([
-                    'status' => 'failed',
-                    'error_message' => 'Paiement échoué via Monetbil'
-                ]);
-                Log::warning('Paiement échoué: ' . $paymentRef);
-            }
-
-            return response()->json(['status' => 'ok']);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur notification Monetbil: ' . $e->getMessage());
-            return response()->json(['status' => 'error'], 500);
-        }
-    }
-
-    /**
      * Gérer le succès de paiement Monetbil
      */
     public function handleMonetbilSuccess(Request $request)
@@ -583,13 +411,12 @@ class PaymentController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Paiement réussi ! Votre abonnement Premium Dating est maintenant actif.',
+                'message' => 'Paiement réussi !',
                 'data' => [
                     'payment_id' => $payment->id,
                     'payment_ref' => $payment->payment_ref,
                     'amount' => $payment->amount,
                     'status' => $payment->status,
-                    'expires_at' => $payment->user->premium_dating_expires_at
                 ]
             ]);
 

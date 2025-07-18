@@ -396,7 +396,7 @@ const CreateAnnouncement = () => {
 
     return (
         <div className="create-announcement-container">
-            <Container className="mt-4">
+            <Container>
                 <Row className="justify-content-center">
                     <Col md={10} lg={8}>
                         {/* Header avec progress */}
@@ -712,7 +712,7 @@ const CreateAnnouncement = () => {
                                                     name="is_promotional"
                                                     checked={formData.is_promotional}
                                                     onChange={handleChange}
-                                                    label="🌟 Annonce promotionnelle (+500 FCFA)"
+                                                    label="🌟 Annonce promotionnelle (+1 FCFA)"
                                                     className="form-check-enhanced"
                                                 />
                                                 <Form.Text className="text-muted">
@@ -743,7 +743,7 @@ const CreateAnnouncement = () => {
                                                     Création...
                                                 </>
                                             ) : formData.is_promotional ? (
-                                                '💳 Payer et créer l\'annonce (500 FCFA)'
+                                                '💳 Payer et créer l\'annonce (1 FCFA)'
                                             ) : (
                                                 '🚀 Créer l\'annonce'
                                             )}
@@ -760,7 +760,7 @@ const CreateAnnouncement = () => {
                                 setShowPaymentModal(false);
                                 setPendingAnnouncementData(null);
                             }}
-                            amount={500}
+                            amount={1}
                             type="promotional"
                             onPaymentSuccess={handlePaymentSuccess}
                         />

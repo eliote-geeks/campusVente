@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\UserRatingController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\CampusLoveController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -150,12 +151,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/payment/notify', [PaymentController::class, 'handleNotification']); // Webhook Monetbil
     Route::put('/payments/{paymentId}/validate', [PaymentController::class, 'validatePayment']);
     
-    // Routes callbacks Monetbil pour l'abonnement Premium Dating
+    // Routes callbacks Monetbil
     Route::post('/monetbil/notify', [PaymentController::class, 'handleMonetbilNotification']);
     Route::get('/monetbil/success', [PaymentController::class, 'handleMonetbilSuccess']);
     Route::get('/monetbil/failed', [PaymentController::class, 'handleMonetbilFailed']);
-    Route::post('/payments/premium-dating', [PaymentController::class, 'initiatePremiumDatingPayment']);
-    
     // Routes pour le dashboard des paiements (temporairement publiques)
     Route::get('/payments/user/{userId?}', [PaymentController::class, 'getUserPayments']);
     Route::get('/payments/stats', [PaymentController::class, 'getPaymentStats']);
@@ -258,6 +257,18 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     
     // Notifications utilisateur (protégées)
     Route::post('/notifications/user/{userId}', [NotificationController::class, 'sendNotificationToUser']);
+    
+    // Routes CampusLove (système de dating)
+    Route::prefix('campus-love')->group(function () {
+        Route::get('/profiles', [CampusLoveController::class, 'getProfiles']);
+        Route::post('/like', [CampusLoveController::class, 'likeProfile']);
+        Route::post('/skip', [CampusLoveController::class, 'skipProfile']);
+        Route::get('/matches', [CampusLoveController::class, 'getMatches']);
+        Route::post('/start-conversation', [CampusLoveController::class, 'startConversation']);
+        Route::put('/profile', [CampusLoveController::class, 'updateDatingProfile']);
+        Route::get('/profile', [CampusLoveController::class, 'getDatingProfile']);
+        Route::get('/stats', [CampusLoveController::class, 'getStats']);
+    });
     Route::get('/notifications', [NotificationController::class, 'getUserNotifications']);
     Route::get('/notifications/user/{userId?}', [NotificationController::class, 'getUserNotifications']);
     Route::put('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead']);

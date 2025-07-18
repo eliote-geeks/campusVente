@@ -1,9 +1,10 @@
 /* Conteneur principal */
 .create-announcement-container {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    padding: 80px 0 20px 0; /* Ajout de padding-top pour éviter le chevauchement avec navbar */
+    min-height: calc(100vh - 80px);
+    padding: 20px 0;
     position: relative;
+    margin-top: 80px;
 }
 
 .create-announcement-container::before {
@@ -85,6 +86,7 @@
     padding: 25px;
     margin-bottom: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .page-title {
@@ -153,7 +155,7 @@
 .main-form-card {
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(15px);
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
     position: relative;
@@ -354,7 +356,9 @@
 /* Responsive */
 @media (max-width: 768px) {
     .create-announcement-container {
-        padding: 70px 0 20px 0;
+        padding: 15px 0;
+        margin-top: 70px;
+        min-height: calc(100vh - 70px);
     }
     
     .page-header {
@@ -389,8 +393,8 @@
     }
 }
 
-/* Transitions globales */
-* {
+/* Transitions globales - Limiter aux éléments pertinents */
+.btn, .form-control, .form-select, .card, .alert {
     transition: all 0.2s ease;
 }
 

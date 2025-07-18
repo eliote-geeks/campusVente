@@ -25,6 +25,16 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        'birth_date',
+        'gender',
+        'looking_for',
+        'bio_dating',
+        'interests',
+        'dating_photos',
+        'whatsapp_number',
+        'dating_active',
+        'max_distance',
+        'dating_preferences',
         'university',
         'study_level',
         'field',
@@ -32,9 +42,6 @@ class User extends Authenticatable
         'location',
         'is_student',
         'avatar',
-        'is_premium_dating',
-        'premium_dating_expires_at',
-        'dating_profile',
     ];
 
     /**
@@ -61,9 +68,11 @@ class User extends Authenticatable
             'verified' => 'boolean',
             'rating' => 'decimal:2',
             'last_seen' => 'datetime',
-            'is_premium_dating' => 'boolean',
-            'premium_dating_expires_at' => 'datetime',
-            'dating_profile' => 'array',
+            'birth_date' => 'date',
+            'dating_active' => 'boolean',
+            'interests' => 'array',
+            'dating_photos' => 'array',
+            'dating_preferences' => 'array',
         ];
     }
 
@@ -73,6 +82,114 @@ class User extends Authenticatable
     public function isOnline(): bool
     {
         return $this->last_seen && $this->last_seen->diffInMinutes(now()) <= 5;
+    }
+
+    /**
+     * Relation avec les likes envoyés
+     */
+    public function sentLikes()
+    {
+        return $this->hasMany(StudentLike::class, 'liker_id');
+    }
+
+    /**
+     * Relation avec les likes reçus
+     */
+    public function receivedLikes()
+    {
+        return $this->hasMany(StudentLike::class, 'liked_id');
+    }
+
+    /**
+     * Relation avec les matchs (en tant que user1)
+     */
+    public function matchesAsUser1()
+    {
+        return $this->hasMany(StudentMatch::class, 'user1_id');
+    }
+
+    /**
+     * Relation avec les matchs (en tant que user2)
+     */
+    public function matchesAsUser2()
+    {
+        return $this->hasMany(StudentMatch::class, 'user2_id');
+    }
+
+    /**
+     * Obtenir tous les matchs de l'utilisateur
+     */
+    public function getAllMatches()
+    {
+        $matchesAsUser1 = $this->matchesAsUser1()->with(['user2'])->get();
+        $matchesAsUser2 = $this->matchesAsUser2()->with(['user1'])->get();
+        
+        return $matchesAsUser1->merge($matchesAsUser2);
+    }
+
+    /**
+     * Calculer l'âge à partir de la date de naissance
+     */
+    public function getAge(): ?int
+    {
+        return $this->birth_date ? $this->birth_date->diffInYears(now()) : null;
+    }
+
+    /**
+     * Vérifier si l'utilisateur a un profil dating complet
+     */
+    public function hasDatingProfile(): bool
+    {
+        return !empty($this->birth_date) && 
+               !empty($this->gender) && 
+               !empty($this->looking_for) && 
+               !empty($this->whatsapp_number) &&
+               $this->dating_active;
+    }
+
+    /**
+     * Obtenir les utilisateurs potentiels pour le dating
+     */
+    public static function getPotentialMatches(int $userId, int $limit = 10)
+    {
+        $user = self::find($userId);
+        if (!$user || !$user->hasDatingProfile()) {
+            return collect();
+        }
+
+        // Récupérer les IDs des utilisateurs déjà likés
+        $likedUserIds = StudentLike::where('liker_id', $userId)->pluck('liked_id');
+        
+        // Récupérer les IDs des utilisateurs avec qui il y a déjà un match
+        $matchedUserIds = StudentMatch::where('user1_id', $userId)
+            ->orWhere('user2_id', $userId)
+            ->get()
+            ->map(function ($match) use ($userId) {
+                return $match->user1_id === $userId ? $match->user2_id : $match->user1_id;
+            });
+
+        // Exclure l'utilisateur actuel, les utilisateurs déjà likés et les matchs existants
+        $excludedIds = $likedUserIds->merge($matchedUserIds)->push($userId)->unique();
+
+        $query = self::where('dating_active', true)
+            ->whereNotIn('id', $excludedIds)
+            ->whereNotNull('birth_date')
+            ->whereNotNull('gender')
+            ->whereNotNull('looking_for')
+            ->whereNotNull('whatsapp_number');
+
+        // Filtrer par préférences de genre
+        if ($user->looking_for !== 'both') {
+            $query->where('gender', $user->looking_for);
+        }
+
+        // Filtrer par qui recherche le genre de l'utilisateur
+        $query->where(function ($q) use ($user) {
+            $q->where('looking_for', $user->gender)
+              ->orWhere('looking_for', 'both');
+        });
+
+        return $query->inRandomOrder()->limit($limit)->get();
     }
 
     // Relations pour le système de notation
