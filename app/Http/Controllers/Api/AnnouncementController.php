@@ -19,7 +19,7 @@ class AnnouncementController extends Controller
     public function __construct()
     {
         // Authentification requise pour créer/modifier des annonces
-        $this->middleware('auth:sanctum', ['except' => ['index', 'show', 'storeWithFiles', 'updateWithFiles']]);
+        $this->middleware('auth:sanctum', ['except' => ['index', 'show', 'updateWithFiles']]);
     }
     /**
      * Display a listing of the resource.
@@ -86,6 +86,14 @@ class AnnouncementController extends Controller
      */
     public function store(Request $request)
     {
+        // Vérifier que l'utilisateur est authentifié
+        if (!auth()->check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non authentifié'
+            ], 401);
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -186,6 +194,26 @@ class AnnouncementController extends Controller
      */
     public function storeWithFiles(Request $request)
     {
+        // Vérifier l'authentification manuellement
+        if (!$request->bearerToken()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token d\'authentification requis'
+            ], 401);
+        }
+
+        // Authentifier l'utilisateur avec le token
+        $user = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken())?->tokenable;
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token d\'authentification invalide'
+            ], 401);
+        }
+
+        // Définir l'utilisateur authentifié
+        Auth::setUser($user);
+
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
