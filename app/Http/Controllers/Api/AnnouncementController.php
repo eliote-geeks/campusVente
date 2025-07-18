@@ -146,7 +146,7 @@ class AnnouncementController extends Controller
             'type' => $request->type,
             'location' => $request->location,
             'category_id' => $request->category_id,
-            'user_id' => $request->user_id ?? auth()->id() ?? 1,
+            'user_id' => auth()->id(),
             'is_urgent' => $request->is_urgent ?? false,
             'is_promotional' => $request->is_promotional ?? false,
             'promotional_fee' => $request->is_promotional ? 500 : null,
@@ -269,7 +269,7 @@ class AnnouncementController extends Controller
                     ], 400);
                 }
                 
-                if ($payment->user_id !== ($request->user_id ?? auth()->id())) {
+                if ($payment->user_id !== auth()->id()) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Ce paiement n\'appartient pas à l\'utilisateur courant'
@@ -303,7 +303,7 @@ class AnnouncementController extends Controller
             'location' => $request->location,
             'phone' => $request->phone,
             'category_id' => $request->category_id,
-            'user_id' => $request->user_id ?? auth()->id() ?? 1,
+            'user_id' => auth()->id(),
             'is_urgent' => $request->is_urgent ?? false,
             'is_promotional' => $isPromotional,
             'promotional_fee' => $promotionalFee,

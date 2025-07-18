@@ -139,263 +139,112 @@ const PaymentModal = ({
         <Modal 
             show={show} 
             onHide={onHide} 
-            size="lg" 
             centered 
             className="payment-modal"
             backdrop="static"
         >
             <Modal.Header closeButton className="payment-header border-0">
-                <Modal.Title className="payment-title d-flex align-items-center">
-                    <div className="payment-icon me-3">
+                <Modal.Title className="payment-title text-center w-100">
+                    <div className="payment-icon mx-auto mb-2">
                         <i className="fas fa-credit-card"></i>
                     </div>
-                    <div>
-                        <h4 className="mb-1">Paiement Sécurisé</h4>
-                        <small className="text-muted">Propulsé par Monetbil</small>
-                    </div>
+                    <h5 className="mb-1">Paiement Sécurisé</h5>
+                    <small className="text-muted d-block">{formatAmount(amount)} - {getPaymentTypeLabel(type)}</small>
                 </Modal.Title>
             </Modal.Header>
             
             <Modal.Body className="payment-body">
                 {error && (
-                    <Alert variant="danger" className="payment-error animated fadeIn">
+                    <Alert variant="danger" className="payment-error animated fadeIn mb-3">
                         <i className="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Erreur:</strong> {error}
+                        {error}
                     </Alert>
                 )}
 
-                {/* Résumé du paiement */}
-                <Card className="payment-summary mb-4 shadow-sm">
-                    <Card.Body className="p-4">
-                        <div className="d-flex align-items-center mb-3">
-                            <i className="fas fa-file-invoice-dollar payment-summary-icon me-3"></i>
-                            <h6 className="fw-bold mb-0">Résumé du paiement</h6>
+                <div className="payment-methods-summary mb-3">
+                    <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+                        <div className="payment-method-item">
+                            <i className="fas fa-mobile-alt"></i>
+                            <span>Mobile Money</span>
                         </div>
+                        <div className="payment-method-item">
+                            <i className="fas fa-credit-card"></i>
+                            <span>Cartes</span>
+                        </div>
+                        <div className="security-badge">
+                            <i className="fas fa-shield-alt"></i>
+                            <span>Sécurisé</span>
+                        </div>
+                    </div>
+                </div>
                         
-                        <div className="payment-summary-item">
-                            <span className="summary-label">Type de paiement</span>
-                            <Badge bg="primary" className="summary-badge">{getPaymentTypeLabel(type)}</Badge>
-                        </div>
-                        
-                        <div className="payment-summary-item">
-                            <span className="summary-label">Montant à payer</span>
-                            <div className="amount-display">
-                                <span className="amount-value">{formatAmount(amount)}</span>
-                            </div>
-                        </div>
-                        
-                        <div className="security-notice">
-                            <i className="fas fa-shield-alt me-2"></i>
-                            <span>Paiement 100% sécurisé par Monetbil</span>
-                        </div>
-                    </Card.Body>
-                </Card>
-
-                {/* Méthodes de paiement disponibles */}
-                <Card className="payment-methods mb-4 shadow-sm">
-                    <Card.Body className="p-4">
-                        <div className="d-flex align-items-center mb-3">
-                            <i className="fas fa-mobile-alt payment-methods-icon me-3"></i>
-                            <h6 className="fw-bold mb-0">Méthodes de paiement acceptées</h6>
-                        </div>
-                        
-                        <Row>
-                            <Col md={6}>
-                                <div className="payment-category">
-                                    <h6 className="category-title">Mobile Money</h6>
-                                    <div className="payment-options">
-                                        {Object.entries(paymentMethods.mobile_money).map(([key, label]) => (
-                                            <div key={key} className="payment-option">
-                                                <i className="fas fa-mobile-alt me-2"></i>
-                                                <span>{label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </Col>
-                            <Col md={6}>
-                                <div className="payment-category">
-                                    <h6 className="category-title">Cartes Bancaires</h6>
-                                    <div className="payment-options">
-                                        {Object.entries(paymentMethods.bank).map(([key, label]) => (
-                                            <div key={key} className="payment-option">
-                                                <i className="fas fa-credit-card me-2"></i>
-                                                <span>{label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </Col>
-                        </Row>
-                    </Card.Body>
-                </Card>
-
-                {/* Formulaire */}
-                <Card className="payment-form shadow-sm">
-                    <Card.Body className="p-4">
-                        <div className="d-flex align-items-center mb-4">
-                            <i className="fas fa-user-edit payment-form-icon me-3"></i>
-                            <h6 className="fw-bold mb-0">Informations de paiement</h6>
-                        </div>
-                        
-                        <Form onSubmit={handlePayment}>
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="form-label-custom">
-                                            <i className="fas fa-user me-2"></i>
-                                            Prénom
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="first_name"
-                                            value={paymentData.first_name}
-                                            onChange={handleInputChange}
-                                            placeholder="Votre prénom"
-                                            disabled={loading}
-                                            className="form-control-custom"
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="form-label-custom">
-                                            <i className="fas fa-user me-2"></i>
-                                            Nom
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="last_name"
-                                            value={paymentData.last_name}
-                                            onChange={handleInputChange}
-                                            placeholder="Votre nom"
-                                            disabled={loading}
-                                            className="form-control-custom"
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                    
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="form-label-custom required">
-                                            <i className="fas fa-mobile-alt me-2"></i>
-                                            Numéro de téléphone
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="tel"
-                                            name="phone"
-                                            value={paymentData.phone}
-                                            onChange={handleInputChange}
-                                            placeholder="ex: +237 6XX XXX XXX"
-                                            required
-                                            disabled={loading}
-                                            className="form-control-custom"
-                                        />
-                                        <Form.Text className="form-text-custom">
-                                            <i className="fas fa-info-circle me-1"></i>
-                                            Numéro pour Mobile Money
-                                        </Form.Text>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="form-label-custom required">
-                                            <i className="fas fa-envelope me-2"></i>
-                                            Email
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="email"
-                                            name="email"
-                                            value={paymentData.email}
-                                            onChange={handleInputChange}
-                                            placeholder="votre@email.com"
-                                            required
-                                            disabled={loading}
-                                            className="form-control-custom"
-                                        />
-                                        <Form.Text className="form-text-custom">
-                                            <i className="fas fa-info-circle me-1"></i>
-                                            Pour la confirmation
-                                        </Form.Text>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Form.Group className="mb-4">
-                                <Form.Label className="form-label-custom">
-                                    <i className="fas fa-sticky-note me-2"></i>
-                                    Notes (optionnel)
+                <Form onSubmit={handlePayment} className="payment-form-simple">
+                    <Row>
+                        <Col md={6}>
+                            <Form.Group className="mb-3">
+                                <Form.Label className="form-label-simple required">
+                                    <i className="fas fa-mobile-alt me-2"></i>
+                                    Téléphone
                                 </Form.Label>
                                 <Form.Control
-                                    as="textarea"
-                                    rows={3}
-                                    name="notes"
-                                    value={paymentData.notes}
+                                    type="tel"
+                                    name="phone"
+                                    value={paymentData.phone}
                                     onChange={handleInputChange}
-                                    placeholder="Informations supplémentaires..."
+                                    placeholder="Ex: 677123456"
+                                    required
                                     disabled={loading}
-                                    className="form-control-custom"
+                                    className="form-control-simple"
                                 />
                             </Form.Group>
-
-                            {/* Informations importantes */}
-                            <div className="payment-info-notice">
-                                <div className="info-header">
-                                    <i className="fas fa-info-circle me-2"></i>
-                                    <span>Informations importantes</span>
-                                </div>
-                                <ul className="info-list">
-                                    <li>
-                                        <i className="fas fa-external-link-alt me-2"></i>
-                                        Redirection vers la page sécurisée Monetbil
-                                    </li>
-                                    <li>
-                                        <i className="fas fa-bolt me-2"></i>
-                                        Traitement en temps réel
-                                    </li>
-                                    <li>
-                                        <i className="fas fa-envelope-check me-2"></i>
-                                        Confirmation par email
-                                    </li>
-                                    <li>
-                                        <i className="fas fa-headset me-2"></i>
-                                        Support disponible 24/7
-                                    </li>
-                                </ul>
-                            </div>
-                        </Form>
-                    </Card.Body>
-                </Card>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group className="mb-3">
+                                <Form.Label className="form-label-simple required">
+                                    <i className="fas fa-envelope me-2"></i>
+                                    Email
+                                </Form.Label>
+                                <Form.Control
+                                    type="email"
+                                    name="email"
+                                    value={paymentData.email}
+                                    onChange={handleInputChange}
+                                    placeholder="votre@email.com"
+                                    required
+                                    disabled={loading}
+                                    className="form-control-simple"
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                </Form>
             </Modal.Body>
 
-            <Modal.Footer className="payment-footer border-0">
-                <div className="footer-actions w-100">
+            <Modal.Footer className="payment-footer-simple border-0">
+                <div className="d-flex gap-2 w-100">
                     <Button 
                         variant="outline-secondary" 
                         onClick={onHide} 
                         disabled={loading}
-                        className="cancel-btn"
+                        className="flex-fill"
                     >
-                        <i className="fas fa-times me-2"></i>
                         Annuler
                     </Button>
                     <Button 
-                        variant="success" 
+                        variant="primary" 
                         onClick={handlePayment}
                         disabled={loading || !paymentData.phone || !paymentData.email}
-                        className="pay-btn"
+                        className="flex-fill pay-btn-simple"
                     >
                         {loading ? (
                             <>
                                 <Spinner size="sm" className="me-2" animation="border" />
-                                <span>Traitement en cours...</span>
+                                Traitement...
                             </>
                         ) : (
                             <>
                                 <i className="fas fa-credit-card me-2"></i>
-                                <span>Payer {formatAmount(amount)}</span>
+                                Payer {formatAmount(amount)}
                             </>
                         )}
                     </Button>

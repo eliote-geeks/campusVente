@@ -32,6 +32,9 @@ class User extends Authenticatable
         'location',
         'is_student',
         'avatar',
+        'is_premium_dating',
+        'premium_dating_expires_at',
+        'dating_profile',
     ];
 
     /**
@@ -58,6 +61,9 @@ class User extends Authenticatable
             'verified' => 'boolean',
             'rating' => 'decimal:2',
             'last_seen' => 'datetime',
+            'is_premium_dating' => 'boolean',
+            'premium_dating_expires_at' => 'datetime',
+            'dating_profile' => 'array',
         ];
     }
 
