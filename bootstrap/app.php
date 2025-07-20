@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
+        
+        // Register custom middleware aliases
+        $middleware->alias([
+            'campus_love_access' => \App\Http\Middleware\CampusLoveAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

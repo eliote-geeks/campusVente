@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Button, Modal, Form, Tab, Tabs, Badge, Alert, Spinner } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { Heart, X, Star, MessageCircle, Settings, Eye, EyeSlash } from 'lucide-react';
+import { Heart, X, Star, MessageCircle, Settings, Eye, EyeSlash, Lock } from 'lucide-react';
 import axios from 'axios';
+import CampusLoveAccess from '../components/CampusLoveAccess.jsx';
+import CampusLoveAccessGitHub from '../components/CampusLoveAccessGitHub.jsx';
+import CampusLoveMediaUpload from '../components/CampusLoveMediaUpload.jsx';
 import './CampusLove.css';
 
 const CampusLove = () => {
@@ -15,6 +18,11 @@ const CampusLove = () => {
     const [matchInfo, setMatchInfo] = useState(null);
     const [swipeAnimation, setSwipeAnimation] = useState('');
     const [alert, setAlert] = useState({ show: false, message: '', type: 'info' });
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [hasAccess, setHasAccess] = useState(true); // Accès libre temporairement
+    const [showAccessModal, setShowAccessModal] = useState(false);
+    const [showGitHubAccessModal, setShowGitHubAccessModal] = useState(false);
+    const [accessLoading, setAccessLoading] = useState(false); // Pas de vérification pour l'instant
 
     // Données de test avec vraies images
     const [profiles, setProfiles] = useState([
@@ -22,12 +30,16 @@ const CampusLove = () => {
             id: 1,
             name: "Sophie Martin",
             age: 22,
-            university: "Université de Yaoundé I",
+            address: "Quartier Bastos, Yaoundé",
             study_level: "Master 1",
             field: "Médecine",
             bio: "Passionnée de médecine et de voyage. J'adore découvrir de nouveaux endroits et rencontrer des gens intéressants. À la recherche de quelqu'un avec qui partager de belles aventures !",
             interests: ["Médecine", "Voyage", "Photographie", "Cuisine"],
-            photos: ["https://images.unsplash.com/photo-1494790108755-2616b169c54a?w=400&h=600&fit=crop&crop=face"],
+            photos: [
+                "https://images.unsplash.com/photo-1494790108755-2616b169c54a?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop&crop=face"
+            ],
             location: "Yaoundé",
             distance: 5,
             isOnline: true
@@ -36,12 +48,16 @@ const CampusLove = () => {
             id: 2,
             name: "Marie Dubois",
             age: 20,
-            university: "Université de Douala",
+            address: "Quartier Bonanjo, Douala",
             study_level: "Licence 3",
             field: "Informatique",
             bio: "Développeuse en herbe qui code avec passion. J'aime les défis technologiques et les soirées cinéma. Recherche quelqu'un qui partage ma passion pour l'innovation.",
             interests: ["Programmation", "Cinéma", "Gaming", "Musique"],
-            photos: ["https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=400&h=600&fit=crop&crop=face"],
+            photos: [
+                "https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=600&fit=crop&crop=face"
+            ],
             location: "Douala",
             distance: 12,
             isOnline: false
@@ -50,12 +66,16 @@ const CampusLove = () => {
             id: 3,
             name: "Aisha Koné",
             age: 21,
-            university: "Université de Buea",
+            address: "Mile 16, Buea",
             study_level: "Licence 2",
             field: "Architecture",
             bio: "Créative et ambitieuse, je dessine l'avenir une ligne à la fois. J'adore l'art, la danse et les longues discussions philosophiques.",
             interests: ["Architecture", "Art", "Danse", "Philosophie"],
-            photos: ["https://images.unsplash.com/photo-1589571894960-20bbe2828d0a?w=400&h=600&fit=crop&crop=face"],
+            photos: [
+                "https://images.unsplash.com/photo-1589571894960-20bbe2828d0a?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?w=400&h=600&fit=crop&crop=face"
+            ],
             location: "Buea",
             distance: 8,
             isOnline: true
@@ -64,12 +84,16 @@ const CampusLove = () => {
             id: 4,
             name: "Emma Laurent",
             age: 23,
-            university: "Université de Ngaoundéré",
+            address: "Quartier Dang, Ngaoundéré",
             study_level: "Master 2",
             field: "Psychologie",
             bio: "Curieuse de nature, j'explore l'esprit humain et les relations interpersonnelles. J'aime les randonnées, la lecture et les conversations profondes.",
             interests: ["Psychologie", "Randonnée", "Lecture", "Yoga"],
-            photos: ["https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=600&fit=crop&crop=face"],
+            photos: [
+                "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop&crop=face"
+            ],
             location: "Ngaoundéré",
             distance: 15,
             isOnline: false
@@ -78,12 +102,16 @@ const CampusLove = () => {
             id: 5,
             name: "Chloe Mbang",
             age: 19,
-            university: "Université de Yaoundé II",
+            address: "Quartier Essos, Yaoundé",
             study_level: "Licence 1",
             field: "Commerce",
             bio: "Entrepreneure dans l'âme, je rêve de créer ma propre entreprise. J'aime le sport, la musique et les sorties entre amis. Toujours prête pour de nouvelles aventures !",
             interests: ["Entrepreneuriat", "Sport", "Musique", "Voyage"],
-            photos: ["https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=600&fit=crop&crop=face"],
+            photos: [
+                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400&h=600&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1494790108755-2616b169c54a?w=400&h=600&fit=crop&crop=face"
+            ],
             location: "Yaoundé",
             distance: 3,
             isOnline: true
@@ -98,7 +126,7 @@ const CampusLove = () => {
                 name: "Marie Dubois",
                 age: 20,
                 photo: "https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=400&h=600&fit=crop&crop=face",
-                university: "Université de Douala"
+                address: "Quartier Bonanjo, Douala"
             },
             matched_at: "2024-01-15T10:30:00Z",
             conversation_started: false
@@ -110,7 +138,7 @@ const CampusLove = () => {
                 name: "Aisha Koné",
                 age: 21,
                 photo: "https://images.unsplash.com/photo-1589571894960-20bbe2828d0a?w=400&h=600&fit=crop&crop=face",
-                university: "Université de Buea"
+                address: "Mile 16, Buea"
             },
             matched_at: "2024-01-14T16:45:00Z",
             conversation_started: true
@@ -138,10 +166,52 @@ const CampusLove = () => {
         dating_photos: []
     });
 
-    const showAlert = (message, type = 'info') => {
+    useEffect(() => {
+        // checkAccess(); // Désactivé temporairement - accès libre
+    }, []);
+
+    const checkAccess = async () => {
+        try {
+            setAccessLoading(true);
+            const response = await axios.get('/api/v1/campus-love/check-access');
+            setHasAccess(response.data.has_access);
+            
+            if (!response.data.has_access) {
+                setShowAccessModal(true);
+            }
+        } catch (error) {
+            console.error('Erreur vérification accès:', error);
+            setShowAccessModal(true);
+        } finally {
+            setAccessLoading(false);
+        }
+    };
+
+    const showAlert = useCallback((message, type = 'info') => {
         setAlert({ show: true, message, type });
         setTimeout(() => setAlert({ show: false, message: '', type: 'info' }), 5000);
-    };
+    }, []);
+
+    // Callbacks mémorisés pour éviter les re-renders infinis
+    const handleAccessGranted = useCallback(() => {
+        setHasAccess(true);
+        setShowAccessModal(false);
+        showAlert('Bienvenue sur CampusLove ! 💕', 'success');
+    }, [showAlert]);
+
+    const handleGitHubAccessGranted = useCallback(() => {
+        setHasAccess(true);
+        setShowGitHubAccessModal(false);
+        showAlert('Bienvenue sur CampusLove ! (GitHub Style) 🔧', 'success');
+    }, [showAlert]);
+
+    const handleAccessModalHide = useCallback(() => {
+        setShowAccessModal(false);
+    }, []);
+
+    const handleGitHubAccessModalHide = useCallback(() => {
+        setShowGitHubAccessModal(false);
+    }, []);
 
     const handleLike = async (isSuper = false) => {
         const profile = profiles[currentProfileIndex];
@@ -161,7 +231,7 @@ const CampusLove = () => {
                         name: profile.name,
                         age: profile.age,
                         photo: profile.photos[0],
-                        university: profile.university
+                        address: profile.address
                     },
                     matched_at: new Date().toISOString(),
                     conversation_started: false
@@ -188,6 +258,7 @@ const CampusLove = () => {
 
     const nextProfile = () => {
         setSwipeAnimation('');
+        setCurrentPhotoIndex(0); // Reset photo index when changing profile
         setCurrentProfileIndex(prev => {
             if (prev + 1 >= profiles.length) {
                 showAlert('Plus de profils disponibles ! Revenez plus tard.', 'info');
@@ -195,6 +266,19 @@ const CampusLove = () => {
             }
             return prev + 1;
         });
+    };
+
+    const nextPhoto = () => {
+        const profile = profiles[currentProfileIndex];
+        if (profile && currentPhotoIndex < profile.photos.length - 1) {
+            setCurrentPhotoIndex(prev => prev + 1);
+        }
+    };
+
+    const prevPhoto = () => {
+        if (currentPhotoIndex > 0) {
+            setCurrentPhotoIndex(prev => prev - 1);
+        }
     };
 
     const resetProfiles = () => {
@@ -239,34 +323,91 @@ const CampusLove = () => {
 
         return (
             <div className="swipe-container">
-                <div className={`swipe-card ${swipeAnimation} fade-in`}>
+                {/* Carte principale avec photos et infos de base */}
+                <div className={`swipe-card main-card ${swipeAnimation} fade-in`}>
                     {profile.isOnline && <div className="online-indicator"></div>}
                     
-                    <img 
-                        src={profile.photos[0]} 
-                        alt={profile.name}
-                        className="profile-image"
-                        onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/400x600/ff6b6b/white?text=Photo';
-                        }}
-                    />
+                    <div className="photo-container">
+                        {/* Photo indicators */}
+                        <div className="photo-indicators">
+                            {profile.photos.map((_, index) => (
+                                <div 
+                                    key={index} 
+                                    className={`photo-indicator ${index === currentPhotoIndex ? 'active' : ''}`}
+                                />
+                            ))}
+                        </div>
+                        
+                        {/* Navigation areas */}
+                        <button className="photo-nav prev" onClick={prevPhoto} />
+                        <button className="photo-nav next" onClick={nextPhoto} />
+                        
+                        {/* Photos */}
+                        {profile.photos.map((photo, index) => (
+                            <img 
+                                key={index}
+                                src={photo} 
+                                alt={`${profile.name} ${index + 1}`}
+                                className="profile-image"
+                                style={{ opacity: index === currentPhotoIndex ? 1 : 0 }}
+                                onError={(e) => {
+                                    e.target.src = 'https://via.placeholder.com/400x600/ff6b6b/white?text=Photo';
+                                }}
+                            />
+                        ))}
+                    </div>
                     
                     <div className="profile-overlay">
                         <h2 className="profile-name">{profile.name}, {profile.age}</h2>
-                        <p className="profile-info">{profile.university}</p>
-                        <p className="profile-info">{profile.study_level} - {profile.field}</p>
+                        <p className="profile-info">📍 {profile.address}</p>
+                        <p className="profile-info">🎓 {profile.study_level} - {profile.field}</p>
                         <p className="profile-distance">📍 {profile.location} • À {profile.distance} km</p>
+                    </div>
+                </div>
+
+                {/* Carte de description détaillée */}
+                <div className="swipe-card details-card fade-in">
+                    <div className="details-header">
+                        <h3 className="details-title">À propos de {profile.name}</h3>
                     </div>
                     
                     <div className="profile-details">
-                        <p className="profile-bio">{profile.bio}</p>
+                        <div className="bio-section">
+                            <h4 className="section-title">📝 Description</h4>
+                            <p className="profile-bio">{profile.bio}</p>
+                        </div>
                         
-                        <div className="interests-container">
-                            {profile.interests.map((interest, index) => (
-                                <span key={index} className="interest-tag">
-                                    {interest}
-                                </span>
-                            ))}
+                        <div className="interests-section">
+                            <h4 className="section-title">❤️ Centres d'intérêt</h4>
+                            <div className="interests-container">
+                                {profile.interests.map((interest, index) => (
+                                    <span key={index} className="interest-tag">
+                                        {interest}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="stats-section">
+                            <h4 className="section-title">📊 Informations</h4>
+                            <div className="info-grid">
+                                <div className="info-item">
+                                    <span className="info-label">Âge :</span>
+                                    <span className="info-value">{profile.age} ans</span>
+                                </div>
+                                <div className="info-item">
+                                    <span className="info-label">Études :</span>
+                                    <span className="info-value">{profile.study_level}</span>
+                                </div>
+                                <div className="info-item">
+                                    <span className="info-label">Domaine :</span>
+                                    <span className="info-value">{profile.field}</span>
+                                </div>
+                                <div className="info-item">
+                                    <span className="info-label">Distance :</span>
+                                    <span className="info-value">{profile.distance} km</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -326,7 +467,7 @@ const CampusLove = () => {
                         />
                         <div className="match-info">
                             <h6 className="match-name">{match.other_user.name}, {match.other_user.age}</h6>
-                            <p className="match-details">{match.other_user.university}</p>
+                            <p className="match-details">📍 {match.other_user.address}</p>
                             <p className="match-details">
                                 {match.conversation_started ? 'Conversation démarrée' : 'Nouveau match !'}
                             </p>
@@ -371,127 +512,192 @@ const CampusLove = () => {
         return (
             <Container>
                 <Row>
-                    <Col md={8} className="mx-auto">
-                        <div className="stat-card">
-                            <h5 className="mb-4">Paramètres du profil</h5>
-                            <Form>
-                                <Row>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label style={{ color: '#666', fontSize: '0.9rem', fontWeight: '600' }}>Date de naissance</Form.Label>
-                                            <Form.Control 
-                                                type="date"
-                                                value={userProfile.birth_date}
-                                                onChange={(e) => setUserProfile({...userProfile, birth_date: e.target.value})}
-                                                style={{ fontSize: '0.9rem' }}
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label style={{ color: '#666', fontSize: '0.9rem', fontWeight: '600' }}>Genre</Form.Label>
-                                            <Form.Select 
-                                                value={userProfile.gender}
-                                                onChange={(e) => setUserProfile({...userProfile, gender: e.target.value})}
-                                                style={{ fontSize: '0.9rem' }}
-                                            >
-                                                <option value="male">Homme</option>
-                                                <option value="female">Femme</option>
-                                                <option value="other">Autre</option>
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
+                    <Col md={10} className="mx-auto">
+                        <div className="text-center mb-4">
+                            <h4 style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                                💕 Paramètres CampusLove
+                            </h4>
+                            <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                                Créez votre profil de rencontre parfait ! Cliquez sur le bouton ci-dessous pour accéder au gestionnaire de profil complet.
+                            </p>
+                        </div>
+                        
+                        <div className="stat-card text-center">
+                            <div className="mb-4">
+                                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>
+                                    🎯
+                                </div>
+                                <h5 className="mb-3">Gestionnaire de Profil Avancé</h5>
+                                <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '2rem' }}>
+                                    Accédez au gestionnaire complet pour configurer votre profil CampusLove avec :
+                                </p>
                                 
-                                <Row>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label style={{ color: '#666', fontSize: '0.9rem', fontWeight: '600' }}>Je recherche</Form.Label>
-                                            <Form.Select 
-                                                value={userProfile.looking_for}
-                                                onChange={(e) => setUserProfile({...userProfile, looking_for: e.target.value})}
-                                                style={{ fontSize: '0.9rem' }}
-                                            >
-                                                <option value="male">Des hommes</option>
-                                                <option value="female">Des femmes</option>
-                                                <option value="both">Peu importe</option>
-                                            </Form.Select>
-                                        </Form.Group>
+                                <Row className="mb-4">
+                                    <Col md={3} className="mb-3">
+                                        <div style={{ padding: '1rem', border: '1px solid #eee', borderRadius: '10px' }}>
+                                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📸</div>
+                                            <strong>Photos</strong>
+                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>Upload avec drag & drop</div>
+                                        </div>
                                     </Col>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label style={{ color: '#666', fontSize: '0.9rem', fontWeight: '600' }}>Numéro WhatsApp</Form.Label>
-                                            <Form.Control 
-                                                type="tel"
-                                                value={userProfile.whatsapp_number}
-                                                onChange={(e) => setUserProfile({...userProfile, whatsapp_number: e.target.value})}
-                                                placeholder="+237 6XX XX XX XX"
-                                                style={{ fontSize: '0.9rem' }}
-                                            />
-                                        </Form.Group>
+                                    <Col md={3} className="mb-3">
+                                        <div style={{ padding: '1rem', border: '1px solid #eee', borderRadius: '10px' }}>
+                                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</div>
+                                            <strong>Descriptions</strong>
+                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>Bio détaillée</div>
+                                        </div>
+                                    </Col>
+                                    <Col md={3} className="mb-3">
+                                        <div style={{ padding: '1rem', border: '1px solid #eee', borderRadius: '10px' }}>
+                                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>❤️</div>
+                                            <strong>Intérêts</strong>
+                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>Centres d'intérêt</div>
+                                        </div>
+                                    </Col>
+                                    <Col md={3} className="mb-3">
+                                        <div style={{ padding: '1rem', border: '1px solid #eee', borderRadius: '10px' }}>
+                                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
+                                            <strong>Statistiques</strong>
+                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>Analyse du profil</div>
+                                        </div>
                                     </Col>
                                 </Row>
-                                
-                                <Form.Group className="mb-3">
-                                    <Form.Label style={{ color: '#666', fontSize: '0.9rem', fontWeight: '600' }}>Bio pour les rencontres</Form.Label>
-                                    <Form.Control 
-                                        as="textarea"
-                                        rows={3}
-                                        value={userProfile.bio_dating}
-                                        onChange={(e) => setUserProfile({...userProfile, bio_dating: e.target.value})}
-                                        placeholder="Parlez-nous de vous..."
-                                        maxLength={500}
-                                        style={{ fontSize: '0.9rem' }}
-                                    />
-                                    <small style={{ color: '#999', fontSize: '0.8rem' }}>
-                                        {userProfile.bio_dating.length}/500 caractères
-                                    </small>
-                                </Form.Group>
-                                
-                                <Form.Group className="mb-3">
-                                    <Form.Label style={{ color: '#666', fontSize: '0.9rem', fontWeight: '600' }}>
-                                        Distance maximale: {userProfile.max_distance} km
-                                    </Form.Label>
-                                    <Form.Range 
-                                        min={1}
-                                        max={100}
-                                        value={userProfile.max_distance}
-                                        onChange={(e) => setUserProfile({...userProfile, max_distance: parseInt(e.target.value)})}
-                                    />
-                                </Form.Group>
-                                
-                                <Form.Group className="mb-4">
-                                    <Form.Check 
-                                        type="switch"
-                                        label="Profil actif"
-                                        checked={userProfile.dating_active}
-                                        onChange={(e) => setUserProfile({...userProfile, dating_active: e.target.checked})}
-                                        style={{ fontSize: '0.9rem' }}
-                                    />
-                                </Form.Group>
                                 
                                 <Button 
-                                    onClick={updateProfile}
-                                    disabled={loading}
+                                    onClick={() => {
+                                        // Rediriger vers la page de profil CampusLove
+                                        window.location.href = '/campus-love-profile';
+                                    }}
                                     style={{
                                         background: 'linear-gradient(45deg, #ff6b6b, #ff8e8e)',
                                         border: 'none',
-                                        borderRadius: '10px',
-                                        padding: '10px 20px',
-                                        fontSize: '0.9rem',
+                                        borderRadius: '15px',
+                                        padding: '15px 30px',
+                                        fontSize: '1rem',
                                         fontWeight: '600',
-                                        width: '100%'
+                                        boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)'
                                     }}
+                                    size="lg"
                                 >
-                                    {loading ? 'Mise à jour...' : 'Mettre à jour le profil'}
+                                    🚀 Ouvrir le Gestionnaire de Profil
                                 </Button>
-                            </Form>
+                                
+                                <div className="mt-3">
+                                    <small style={{ color: '#999', fontSize: '0.8rem' }}>
+                                        Nouveau système avec sauvegarde automatique et interface avancée
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Section d'upload rapide pour les photos */}
+                        <div className="stat-card mt-4">
+                            <h6 className="mb-3" style={{ color: '#ff6b6b' }}>
+                                📸 Upload rapide de photos
+                            </h6>
+                            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                                Vous pouvez aussi uploader vos photos directement ici (version rapide) :
+                            </p>
+                            <CampusLoveMediaUpload
+                                photos={[]}
+                                onPhotosChange={(updatedProfile) => {
+                                    showAlert('Photos uploadées avec succès ! 📸', 'success');
+                                }}
+                                maxPhotos={6}
+                                profile={null}
+                            />
                         </div>
                     </Col>
                 </Row>
             </Container>
         );
     };
+
+    // Écran de chargement
+    if (accessLoading) {
+        return (
+            <div className="campus-love-container">
+                <div className="modern-header">
+                    <Container>
+                        <Row className="align-items-center">
+                            <Col xs={12} className="text-center">
+                                <h1 className="app-logo">💕 CampusLove</h1>
+                            </Col>
+                        </Row>
+                    </Container>
+                </div>
+                <Container className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
+                    <div className="text-center text-white">
+                        <Spinner animation="border" variant="light" className="mb-3" />
+                        <p>Vérification de l'accès...</p>
+                    </div>
+                </Container>
+            </div>
+        );
+    }
+
+    // Écran de verrouillage si pas d'accès
+    if (!hasAccess) {
+        return (
+            <div className="campus-love-container">
+                <div className="modern-header">
+                    <Container>
+                        <Row className="align-items-center">
+                            <Col xs={12} className="text-center">
+                                <h1 className="app-logo">💕 CampusLove</h1>
+                            </Col>
+                        </Row>
+                    </Container>
+                </div>
+                <Container className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
+                    <div className="text-center text-white">
+                        <Lock size={64} className="mb-3" />
+                        <h3 className="mb-3">Accès requis</h3>
+                        <p className="mb-4">
+                            CampusLove est un service premium qui nécessite un paiement unique de 2000 FCFA pour un accès à vie à toutes les fonctionnalités.
+                        </p>
+                        <div className="d-flex flex-column gap-3 align-items-center">
+                            <Button 
+                                onClick={() => setShowAccessModal(true)}
+                                style={{
+                                    background: 'linear-gradient(45deg, #ff6b6b, #ff8e8e)',
+                                    border: 'none',
+                                    padding: '12px 30px',
+                                    fontSize: '1.1rem',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                💳 Débloquer CampusLove (Standard)
+                            </Button>
+                            <Button 
+                                onClick={() => setShowGitHubAccessModal(true)}
+                                variant="outline-light"
+                                style={{
+                                    padding: '12px 30px',
+                                    fontSize: '1rem',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                🔧 Style GitHub (Référence)
+                            </Button>
+                        </div>
+                    </div>
+                </Container>
+                
+                <CampusLoveAccess
+                    show={showAccessModal}
+                    onHide={handleAccessModalHide}
+                    onAccessGranted={handleAccessGranted}
+                />
+
+                <CampusLoveAccessGitHub
+                    show={showGitHubAccessModal}
+                    onHide={handleGitHubAccessModalHide}
+                    onAccessGranted={handleGitHubAccessGranted}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="campus-love-container">
@@ -594,6 +800,17 @@ const CampusLove = () => {
                     </div>
                 </Modal.Body>
             </Modal>
+
+            {/* Modal CampusLove Access */}
+            <CampusLoveAccess
+                show={showAccessModal}
+                onHide={() => setShowAccessModal(false)}
+                onAccessGranted={() => {
+                    setHasAccess(true);
+                    setShowAccessModal(false);
+                    showAlert('Bienvenue sur CampusLove ! 💕', 'success');
+                }}
+            />
         </div>
     );
 };

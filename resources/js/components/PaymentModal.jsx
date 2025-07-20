@@ -21,19 +21,6 @@ const PaymentModal = ({
         notes: ''
     });
 
-    const paymentMethods = {
-        mobile_money: {
-            mtn: 'MTN Mobile Money',
-            orange: 'Orange Money',
-            nextel: 'Nextel Possa',
-            express_union: 'Express Union Mobile',
-            yup: 'YUP'
-        },
-        bank: {
-            visa: 'Visa',
-            mastercard: 'Mastercard'
-        }
-    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -45,6 +32,11 @@ const PaymentModal = ({
 
     const handlePayment = async (e) => {
         e.preventDefault();
+        if (!paymentData.phone.trim() || !paymentData.email.trim()) {
+            setError('Veuillez remplir tous les champs obligatoires');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
@@ -61,6 +53,7 @@ const PaymentModal = ({
                 meeting_id: meetingId,
                 phone: paymentData.phone,
                 email: paymentData.email,
+                payment_method: 'widget',
                 notes: paymentData.notes
             };
 
@@ -77,46 +70,51 @@ const PaymentModal = ({
             const data = await response.json();
 
             if (data.success) {
-                // Utiliser le widget Monetbil v2
-                if (typeof window.monetbil !== 'undefined') {
-                    window.monetbil.launch({
-                        amount: amount,
-                        phone: paymentData.phone,
-                        email: paymentData.email,
-                        item_ref: data.data.payment_ref,
-                        payment_ref: data.data.payment_ref,
-                        user: data.data.user_id,
-                        first_name: paymentData.first_name || '',
-                        last_name: paymentData.last_name || '',
-                        return_url: `${window.location.origin}/payment-success`,
-                        notify_url: `${window.location.origin}/api/v1/payments/webhook`,
-                        custom_data: JSON.stringify({
-                            type: type,
-                            announcement_id: announcementId,
-                            meeting_id: meetingId
-                        })
-                    });
-                } else {
-                    // Fallback vers l'ancien système
-                    window.open(data.data.payment_url, '_blank');
-                }
+                // Widget de paiement - redirection
+                window.open(data.data.payment_url, '_blank');
+                setLoading(false);
                 
-                if (onPaymentSuccess) {
-                    onPaymentSuccess(data.data);
-                }
+                // Afficher un message d'information
+                setError('💻 Page de paiement ouverte. Veuillez finaliser votre paiement dans l\'onglet ouvert.');
                 
-                onHide();
+                // Vérifier l'accès toutes les 15 secondes pendant 5 minutes
+                const checkInterval = setInterval(async () => {
+                    try {
+                        const statusResponse = await fetch(`http://127.0.0.1:8000/api/v1/payment/${data.data.payment_id}/status`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const statusData = await statusResponse.json();
+                        
+                        if (statusData.success && statusData.data.status === 'completed') {
+                            clearInterval(checkInterval);
+                            if (onPaymentSuccess) {
+                                onPaymentSuccess(data.data);
+                            }
+                            onHide();
+                        }
+                    } catch (error) {
+                        console.error('Erreur vérification paiement widget:', error);
+                    }
+                }, 15000);
+
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                }, 300000);
             } else {
                 setError(data.message || 'Erreur lors de l\'initiation du paiement');
+                setLoading(false);
             }
 
         } catch (err) {
             console.error('Erreur paiement:', err);
             setError('Erreur lors du traitement du paiement: ' + err.message);
-        } finally {
             setLoading(false);
         }
     };
+
 
     const formatAmount = (amount) => {
         return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
@@ -155,28 +153,17 @@ const PaymentModal = ({
             
             <Modal.Body className="payment-body">
                 {error && (
-                    <Alert variant="danger" className="payment-error animated fadeIn mb-3">
-                        <i className="fas fa-exclamation-triangle me-2"></i>
+                    <Alert 
+                        variant={error.includes('✅') || error.includes('💻') ? 'info' : 'danger'} 
+                        className="payment-error animated fadeIn mb-3"
+                        dismissible 
+                        onClose={() => setError('')}
+                    >
+                        <i className={`fas ${error.includes('✅') || error.includes('💻') ? 'fa-info-circle' : 'fa-exclamation-triangle'} me-2`}></i>
                         {error}
                     </Alert>
                 )}
 
-                <div className="payment-methods-summary mb-3">
-                    <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
-                        <div className="payment-method-item">
-                            <i className="fas fa-mobile-alt"></i>
-                            <span>Mobile Money</span>
-                        </div>
-                        <div className="payment-method-item">
-                            <i className="fas fa-credit-card"></i>
-                            <span>Cartes</span>
-                        </div>
-                        <div className="security-badge">
-                            <i className="fas fa-shield-alt"></i>
-                            <span>Sécurisé</span>
-                        </div>
-                    </div>
-                </div>
                         
                 <Form onSubmit={handlePayment} className="payment-form-simple">
                     <Row>
@@ -196,6 +183,9 @@ const PaymentModal = ({
                                     disabled={loading}
                                     className="form-control-simple"
                                 />
+                                <Form.Text className="text-muted">
+                                    Numéro pour le paiement mobile
+                                </Form.Text>
                             </Form.Group>
                         </Col>
                         <Col md={6}>
@@ -230,6 +220,8 @@ const PaymentModal = ({
                     >
                         Annuler
                     </Button>
+                    
+                    
                     <Button 
                         variant="primary" 
                         onClick={handlePayment}
@@ -243,7 +235,7 @@ const PaymentModal = ({
                             </>
                         ) : (
                             <>
-                                <i className="fas fa-credit-card me-2"></i>
+                                💻 <i className="fas fa-credit-card me-2"></i>
                                 Payer {formatAmount(amount)}
                             </>
                         )}

@@ -320,10 +320,7 @@ const CreateAnnouncement = () => {
                 
                 await createAnnouncementDirectly(announcementData);
                 
-                // Envoyer une notification à tous les utilisateurs
-                await sendNotificationToAllUsers();
-                
-                setSuccess('🎉 Annonce promotionnelle créée et paiement initié avec succès !');
+                setSuccess('🎉 Annonce promotionnelle créée avec succès ! Notification envoyée à tous les utilisateurs.');
                 setTimeout(() => navigate('/my-announcements'), 2000);
             }
         } catch (error) {
@@ -712,7 +709,7 @@ const CreateAnnouncement = () => {
                                                     name="is_promotional"
                                                     checked={formData.is_promotional}
                                                     onChange={handleChange}
-                                                    label="🌟 Annonce promotionnelle (+1 FCFA)"
+                                                    label="🌟 Annonce promotionnelle (500 FCFA)"
                                                     className="form-check-enhanced"
                                                 />
                                                 <Form.Text className="text-muted">
@@ -743,7 +740,7 @@ const CreateAnnouncement = () => {
                                                     Création...
                                                 </>
                                             ) : formData.is_promotional ? (
-                                                '💳 Payer et créer l\'annonce (1 FCFA)'
+                                                '💳 Payer et créer l\'annonce (500 FCFA)'
                                             ) : (
                                                 '🚀 Créer l\'annonce'
                                             )}
@@ -760,7 +757,7 @@ const CreateAnnouncement = () => {
                                 setShowPaymentModal(false);
                                 setPendingAnnouncementData(null);
                             }}
-                            amount={1}
+                            amount={500}
                             type="promotional"
                             onPaymentSuccess={handlePaymentSuccess}
                         />

@@ -34,7 +34,7 @@ api.interceptors.request.use(
 // Intercepteur pour gérer les réponses et les erreurs
 api.interceptors.response.use(
     (response) => {
-        return response.data;
+        return response; // Retourner la response complète
     },
     (error) => {
         if (error.response?.status === 401) {
@@ -46,6 +46,9 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+// Export de l'instance API configurée
+export { api };
 
 // Services API
 export const authAPI = {

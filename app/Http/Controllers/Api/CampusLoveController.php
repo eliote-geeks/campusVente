@@ -15,7 +15,85 @@ class CampusLoveController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:sanctum');
+        $this->middleware('auth:sanctum')->except(['checkAccess', 'getAccessInfo']);
+        $this->middleware('campus_love_access')->except(['checkAccess', 'getAccessInfo']);
+    }
+
+    /**
+     * Vérifier l'accès à CampusLove
+     */
+    public function checkAccess(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Si l'utilisateur n'est pas connecté, pas d'accès
+            if (!$user) {
+                return response()->json([
+                    'success' => true,
+                    'has_access' => false,
+                    'activated_at' => null,
+                    'access_fee' => 1000,
+                    'currency' => 'FCFA'
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'has_access' => $user->campus_love_access ?? false,
+                'activated_at' => $user->campus_love_activated_at,
+                'access_fee' => 1000,
+                'currency' => 'FCFA'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur vérification accès CampusLove', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la vérification de l\'accès'
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtenir les informations d'accès à CampusLove
+     */
+    public function getAccessInfo(Request $request)
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'access_fee' => 1000,
+                    'currency' => 'FCFA',
+                    'description' => 'Accès à vie à CampusLove',
+                    'features' => [
+                        'Découvrir des profils étudiants',
+                        'System de match intelligent',
+                        'Chat via WhatsApp',
+                        'Profil personnalisé',
+                        'Photos multiples',
+                        'Statistiques détaillées'
+                    ],
+                    'payment_methods' => [
+                        'MTN Mobile Money',
+                        'Orange Money',
+                        'Express Union Mobile',
+                        'Cartes bancaires'
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des informations'
+            ], 500);
+        }
     }
 
     /**

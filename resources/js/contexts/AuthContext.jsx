@@ -33,9 +33,10 @@ export const AuthProvider = ({ children }) => {
         try {
             setLoading(true);
             const response = await authAPI.login(credentials);
+            const data = response.data || response; // Gérer les deux formats
             
-            if (response.success) {
-                const { user: userData, token } = response;
+            if (data.success) {
+                const { user: userData, token } = data;
                 
                 // Sauvegarder le token et les données utilisateur
                 auth.setToken(token);
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }) => {
                 
                 return { success: true, user: userData };
             } else {
-                throw new Error(response.message || 'Erreur de connexion');
+                throw new Error(data.message || 'Erreur de connexion');
             }
         } catch (error) {
             console.error('Erreur de connexion:', error);
@@ -63,9 +64,10 @@ export const AuthProvider = ({ children }) => {
         try {
             setLoading(true);
             const response = await authAPI.register(userData);
+            const data = response.data || response; // Gérer les deux formats
             
-            if (response.success) {
-                const { user: newUser, token } = response;
+            if (data.success) {
+                const { user: newUser, token } = data;
                 
                 // Sauvegarder le token et les données utilisateur
                 auth.setToken(token);
@@ -76,7 +78,7 @@ export const AuthProvider = ({ children }) => {
                 
                 return { success: true, user: newUser };
             } else {
-                throw new Error(response.message || 'Erreur d\'inscription');
+                throw new Error(data.message || 'Erreur d\'inscription');
             }
         } catch (error) {
             console.error('Erreur d\'inscription:', error);

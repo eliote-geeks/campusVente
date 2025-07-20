@@ -94,21 +94,21 @@ const Dashboard = () => {
 
     // Données mock pour les paiements
     const mockPaymentData = [
-        { id: 1, payment_ref: 'PROMO_1752745208_2', user: 'Paul Martin', email: 'paul@example.com', amount: 1, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-14 14:20:00', completed_at: '2025-01-14 14:25:00' },
-        { id: 2, payment_ref: 'PROMO_1752745010_4', user: 'Lucas Dubois', email: 'lucas@example.com', amount: 1, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-12 16:45:00', completed_at: '2025-01-12 16:50:00' },
+        { id: 1, payment_ref: 'PROMO_1752745208_2', user: 'Paul Martin', email: 'paul@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-14 14:20:00', completed_at: '2025-01-14 14:25:00' },
+        { id: 2, payment_ref: 'PROMO_1752745010_4', user: 'Lucas Dubois', email: 'lucas@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-12 16:45:00', completed_at: '2025-01-12 16:50:00' },
         { id: 3, payment_ref: 'MEETING_1752744812_6', user: 'Thomas Moreau', email: 'thomas@example.com', amount: 200, currency: 'XAF', type: 'meeting', status: 'completed', created_at: '2025-01-10 13:30:00', completed_at: '2025-01-10 13:35:00' },
-        { id: 4, payment_ref: 'PROMO_1752744614_8', user: 'Hugo Petit', email: 'hugo@example.com', amount: 1, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-08 08:50:00', completed_at: '2025-01-08 08:55:00' },
+        { id: 4, payment_ref: 'PROMO_1752744614_8', user: 'Hugo Petit', email: 'hugo@example.com', amount: 500, currency: 'XAF', type: 'promotional', status: 'completed', created_at: '2025-01-08 08:50:00', completed_at: '2025-01-08 08:55:00' },
         { id: 5, payment_ref: 'MEETING_1752744515_9', user: 'Claire Dubois', email: 'claire@example.com', amount: 150, currency: 'XAF', type: 'meeting', status: 'pending', created_at: '2025-01-07 14:20:00' }
     ];
 
     const mockPaymentStats = {
         totalPayments: 111,
-        totalRevenue: 44500, // en FCFA
+        totalRevenue: 48900, // en FCFA (44500 promo + 4400 meetings)
         successfulPayments: 85,
         failedPayments: 18,
         pendingPayments: 8,
         promotionalPayments: 89,
-        promotionalRevenue: 89, // 89 x 1 FCFA
+        promotionalRevenue: 44500, // 89 x 500 FCFA
         meetingPayments: 22,
         meetingRevenue: 4400,
         monthlyGrowth: 23.5, // en pourcentage

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\CampusLoveController;
+use App\Http\Controllers\Api\CampusLoveProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -222,6 +223,10 @@ Route::prefix('v1')->group(function () {
             ], 500);
         }
     });
+
+    // Routes CampusLove publiques (vérification d'accès sans authentification)
+    Route::get('/campus-love/check-access', [CampusLoveController::class, 'checkAccess']);
+    Route::get('/campus-love/access-info', [CampusLoveController::class, 'getAccessInfo']);
 });
 
 // Routes protégées (avec authentification)
@@ -258,8 +263,24 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     // Notifications utilisateur (protégées)
     Route::post('/notifications/user/{userId}', [NotificationController::class, 'sendNotificationToUser']);
     
-    // Routes CampusLove (système de dating)
+    // Routes CampusLove protégées (système de dating)
     Route::prefix('campus-love')->group(function () {
+        // Gestion des profils CampusLove
+        Route::get('/my-profile', [CampusLoveProfileController::class, 'getMyProfile']);
+        Route::put('/my-profile', [CampusLoveProfileController::class, 'updateProfile']);
+        Route::get('/my-profile/stats', [CampusLoveProfileController::class, 'getProfileStats']);
+        
+        // Gestion des photos de profil
+        Route::post('/photos/upload', [CampusLoveProfileController::class, 'uploadPhoto']);
+        Route::post('/photos/upload-multiple', [CampusLoveProfileController::class, 'uploadMultiplePhotos']);
+        Route::delete('/photos', [CampusLoveProfileController::class, 'deletePhoto']);
+        Route::put('/photos/profile', [CampusLoveProfileController::class, 'setProfilePhoto']);
+        Route::put('/photos/metadata', [CampusLoveProfileController::class, 'updatePhotoMetadata']);
+        
+        // Découverte et matching
+        Route::get('/discover', [CampusLoveProfileController::class, 'getRecommendedProfiles']);
+        
+        // Routes existantes (à adapter plus tard)
         Route::get('/profiles', [CampusLoveController::class, 'getProfiles']);
         Route::post('/like', [CampusLoveController::class, 'likeProfile']);
         Route::post('/skip', [CampusLoveController::class, 'skipProfile']);
@@ -269,6 +290,11 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::get('/profile', [CampusLoveController::class, 'getDatingProfile']);
         Route::get('/stats', [CampusLoveController::class, 'getStats']);
     });
+    
+    // Routes pour paiement CampusLove
+    Route::post('/payment/campus-love', [PaymentController::class, 'initiateCampusLovePayment']);
+    Route::post('/payment/campus-love-github', [PaymentController::class, 'initiateCampusLovePaymentGitHub']);
+    Route::get('/payment/{paymentId}/status', [PaymentController::class, 'checkPaymentStatus']);
     Route::get('/notifications', [NotificationController::class, 'getUserNotifications']);
     Route::get('/notifications/user/{userId?}', [NotificationController::class, 'getUserNotifications']);
     Route::put('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead']);

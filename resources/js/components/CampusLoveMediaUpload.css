@@ -1,0 +1,335 @@
+.campus-love-media-upload {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Zone de drag & drop */
+.drag-drop-zone {
+    border: 2px dashed #e9ecef;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.drag-drop-zone:hover:not(.disabled) {
+    border-color: #007bff;
+    background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.1);
+}
+
+.drag-drop-zone.drag-active {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+    transform: scale(1.02);
+    box-shadow: 0 12px 35px rgba(40, 167, 69, 0.15);
+}
+
+.drag-drop-zone.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f8f9fa;
+}
+
+.drag-drop-content h5 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.drag-drop-content p {
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.drag-drop-content .lucide {
+    color: #007bff;
+    opacity: 0.7;
+}
+
+/* Photos en upload */
+.uploading-photos h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.photo-upload-preview {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.photo-upload-preview img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.upload-overlay small {
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+/* Photos existantes */
+.existing-photos h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.photo-preview {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.photo-preview:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.photo-preview:hover img {
+    transform: scale(1.05);
+}
+
+/* Overlay des actions */
+.photo-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, transparent 30%, transparent 70%, rgba(0, 0, 0, 0.5) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.75rem;
+}
+
+.photo-preview:hover .photo-overlay {
+    opacity: 1;
+}
+
+.photo-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.photo-actions .btn {
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.photo-actions .btn:hover {
+    transform: scale(1.1);
+}
+
+.photo-actions .btn-light {
+    background: rgba(255, 255, 255, 0.9);
+    color: #495057;
+}
+
+.photo-actions .btn-success {
+    background: rgba(40, 167, 69, 0.9);
+}
+
+.photo-actions .btn-danger {
+    background: rgba(220, 53, 69, 0.9);
+}
+
+/* Badge photo principale */
+.photo-main-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    background: rgba(0, 123, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Métadonnées visibles */
+.photo-metadata {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.75rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.photo-preview:hover .photo-metadata {
+    transform: translateY(0);
+}
+
+.metadata-description {
+    display: block;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+    opacity: 0.9;
+}
+
+.metadata-location {
+    display: flex;
+    align-items: center;
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .drag-drop-zone {
+        padding: 2rem 1rem;
+    }
+    
+    .drag-drop-content h5 {
+        font-size: 1.1rem;
+    }
+    
+    .photo-preview img {
+        height: 150px;
+    }
+    
+    .photo-actions .btn {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.photo-preview {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.photo-upload-preview {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* États des badges */
+.badge.bg-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg, #ffc107, #e0a800) !important;
+    color: #212529 !important;
+}
+
+.badge.bg-success {
+    background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+}
+
+/* Modal personnalisé */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1.5rem;
+}
+
+/* Tags dans le modal */
+.badge.bg-secondary {
+    background: linear-gradient(135deg, #6c757d, #545b62) !important;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.badge.bg-secondary:hover {
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+    transform: scale(1.05);
+}
+
+/* Formulaire dans le modal */
+.modal .form-control {
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.modal .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
+}
+
+.modal .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+}

@@ -40,11 +40,12 @@ class PaymentController extends Controller
             
             $validator = Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:1',
-                'type' => 'required|in:promotional,meeting,commission',
+                'type' => 'required|in:promotional,meeting,commission,campus_love',
                 'announcement_id' => 'nullable|exists:announcements,id',
                 'meeting_id' => 'nullable|exists:meetings,id',
                 'phone' => 'required|string|min:8',
                 'email' => 'required|email',
+                'payment_method' => 'in:widget,direct'
             ]);
 
             if ($validator->fails()) {
@@ -81,6 +82,8 @@ class PaymentController extends Controller
                 'notes' => $request->notes,
             ]);
 
+            $paymentMethod = $request->input('payment_method', 'widget');
+
             // Préparer les paramètres pour Monetbil
             $monetbilParams = [
                 'amount' => $request->amount,
@@ -98,27 +101,51 @@ class PaymentController extends Controller
                 'lang' => config('services.monetbil.lang'),
             ];
 
-            // Initier le paiement avec Monetbil
-            $result = $this->monetbilService->initiatePayment($monetbilParams);
+            // Initier le paiement selon la méthode choisie
+            if ($paymentMethod === 'direct') {
+                $result = $this->monetbilService->initiateDirectTransaction($monetbilParams);
+            } else {
+                $result = $this->monetbilService->initiatePayment($monetbilParams);
+            }
 
             if ($result['success']) {
                 // Mettre à jour le paiement avec les données Monetbil
-                $payment->update([
-                    'monetbil_data' => $result['payment_data'],
-                    'monetbil_payment_url' => $result['payment_url'],
+                $updateData = [
+                    'monetbil_data' => $result['payment_data'] ?? $result,
                     'status' => 'processing'
-                ]);
+                ];
+
+                if ($paymentMethod === 'direct') {
+                    $updateData['transaction_id'] = $result['transaction_id'] ?? null;
+                } else {
+                    $updateData['monetbil_payment_url'] = $result['payment_url'];
+                }
+
+                $payment->update($updateData);
+
+                $responseData = [
+                    'payment_id' => $payment->id,
+                    'payment_ref' => $paymentRef,
+                    'amount' => $payment->amount,
+                    'currency' => $payment->currency,
+                    'type' => $payment->type,
+                    'phone' => $request->phone,
+                    'status' => $result['status'] ?? 'processing',
+                    'payment_method' => $paymentMethod
+                ];
+
+                if ($paymentMethod === 'direct') {
+                    $responseData['transaction_id'] = $result['transaction_id'] ?? null;
+                    $responseData['message'] = $result['message'] ?? 'Transaction initiée';
+                } else {
+                    $responseData['payment_url'] = $result['payment_url'];
+                    $responseData['payment_methods'] = $this->monetbilService->getPaymentMethods();
+                }
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Paiement initié avec succès',
-                    'data' => [
-                        'payment_id' => $payment->id,
-                        'payment_ref' => $paymentRef,
-                        'payment_url' => $result['payment_url'],
-                        'amount' => $payment->formatted_amount,
-                        'payment_methods' => $this->monetbilService->getPaymentMethods()
-                    ]
+                    'message' => $paymentMethod === 'direct' ? 'Transaction SMS initiée' : 'Paiement initié avec succès',
+                    'data' => $responseData
                 ]);
             } else {
                 $payment->markAsFailed($result['error']);
@@ -197,11 +224,25 @@ class PaymentController extends Controller
                             'promotional_fee' => $payment->amount,
                             'promoted_at' => now()
                         ]);
+                        
+                        // Envoyer notification à tous les utilisateurs
+                        $this->sendPromotionalNotification($payment->announcement, $payment->user);
                     }
                     break;
 
                 case 'meeting':
                     // Actions spécifiques aux réunions
+                    break;
+
+                case 'campus_love':
+                    // Activer l'accès à CampusLove pour l'utilisateur
+                    if ($payment->user) {
+                        $payment->user->update([
+                            'campus_love_access' => true,
+                            'campus_love_activated_at' => now()
+                        ]);
+                        Log::info('Accès CampusLove activé pour utilisateur: ' . $payment->user->id);
+                    }
                     break;
                     
             }
@@ -215,12 +256,265 @@ class PaymentController extends Controller
     }
 
     /**
+     * Envoyer une notification pour une annonce promotionnelle
+     */
+    private function sendPromotionalNotification($announcement, $user)
+    {
+        try {
+            $response = Http::post(url('/api/v1/notifications/broadcast'), [
+                'title' => '🌟 Nouvelle annonce promotionnelle !',
+                'message' => "{$user->name} a publié une nouvelle annonce promotionnelle : \"{$announcement->title}\"",
+                'type' => 'promotional_announcement',
+                'data' => [
+                    'announcement_id' => $announcement->id,
+                    'announcement_title' => $announcement->title,
+                    'announcement_type' => $announcement->type,
+                    'price' => $announcement->price,
+                    'location' => $announcement->location,
+                    'user_name' => $user->name
+                ]
+            ]);
+            
+            if ($response->successful()) {
+                Log::info('Notification promotionnelle envoyée avec succès', [
+                    'announcement_id' => $announcement->id,
+                    'user_id' => $user->id
+                ]);
+            } else {
+                Log::error('Erreur envoi notification promotionnelle', [
+                    'response' => $response->body()
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur envoi notification promotionnelle: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Traiter un paiement pour annonce promotionnelle (ancienne méthode mise à jour)
      */
     public function processPromotionalPayment(Request $request)
     {
         $request->merge(['type' => 'promotional']);
         return $this->initiatePayment($request);
+    }
+
+    /**
+     * Initier un paiement pour l'accès à CampusLove (approche GitHub)
+     */
+    public function initiateCampusLovePaymentGitHub(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string|min:8',
+                'email' => 'required|email'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Données invalides',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = Auth::user();
+            
+            // Vérifier si l'utilisateur a déjà accès à CampusLove
+            if ($user && $user->campus_love_access) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous avez déjà accès à CampusLove'
+                ], 400);
+            }
+
+            // Utiliser la nouvelle méthode GitHub style
+            $params = [
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'user_id' => $user->id,
+                'first_name' => explode(' ', $user->name)[0] ?? $user->name,
+                'last_name' => explode(' ', $user->name)[1] ?? '',
+            ];
+
+            $result = $this->monetbilService->initiateCampusLovePayment($params);
+
+            if ($result['success']) {
+                // Créer l'enregistrement de paiement
+                $payment = Payment::create([
+                    'user_id' => $user->id,
+                    'payment_ref' => $result['payment_ref'],
+                    'amount' => $result['amount'],
+                    'currency' => $result['currency'],
+                    'type' => 'campus_love',
+                    'status' => 'pending',
+                    'phone' => $result['phone'],
+                    'email' => $request->email,
+                    'notes' => 'Accès CampusLove - Style GitHub',
+                    'monetbil_data' => $result
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Paiement initié selon l\'approche GitHub',
+                    'data' => [
+                        'payment_id' => $payment->id,
+                        'payment_ref' => $result['payment_ref'],
+                        'payment_url' => $result['payment_url'],
+                        'amount' => $result['amount'],
+                        'currency' => $result['currency'],
+                        'phone' => $result['phone']
+                    ]
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors de l\'initiation du paiement',
+                    'error' => $result['error']
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Erreur initiation paiement CampusLove GitHub: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'initiation du paiement CampusLove'
+            ], 500);
+        }
+    }
+
+    /**
+     * Initier un paiement pour l'accès à CampusLove
+     */
+    public function initiateCampusLovePayment(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string|min:8'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Données invalides',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = Auth::user();
+            
+            // Vérifier si l'utilisateur a déjà accès à CampusLove
+            if ($user && $user->campus_love_access) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous avez déjà accès à CampusLove'
+                ], 400);
+            }
+
+            // Définir le montant fixe pour CampusLove (méthode widget seulement)
+            $request->merge([
+                'type' => 'campus_love',
+                'amount' => 2000, // 2000 FCFA
+                'email' => $user->email ?? $request->email,
+                'phone' => $request->phone,
+            ]);
+
+            return $this->initiatePayment($request);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur initiation paiement CampusLove: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'initiation du paiement CampusLove'
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Vérifier manuellement le statut d'un paiement
+     */
+    public function checkPaymentStatus(Request $request, $paymentId)
+    {
+        try {
+            $payment = Payment::findOrFail($paymentId);
+            
+            // Vérifier que l'utilisateur est autorisé à voir ce paiement
+            if (Auth::id() !== $payment->user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Non autorisé'
+                ], 403);
+            }
+
+            // Si le paiement est déjà complété, retourner le statut actuel
+            if ($payment->status === 'completed') {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'payment_id' => $payment->id,
+                        'status' => $payment->status,
+                        'message' => 'Paiement déjà validé'
+                    ]
+                ]);
+            }
+
+            // Vérifier le statut via l'API Monetbil
+            $result = $this->monetbilService->checkPaymentStatus($payment->payment_ref);
+            
+            if ($result['success']) {
+                $apiStatus = $result['status'];
+                
+                // Mettre à jour le statut local si nécessaire
+                if ($apiStatus === 'success' || $apiStatus === '1' || $apiStatus === 1) {
+                    $payment->markAsCompleted($result['transaction_id']);
+                    $this->processPostPaymentActions($payment);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'payment_id' => $payment->id,
+                            'status' => 'completed',
+                            'message' => 'Paiement validé avec succès'
+                        ]
+                    ]);
+                } elseif ($apiStatus === 'failed' || $apiStatus === 'cancelled') {
+                    $payment->markAsFailed('Paiement échoué ou annulé');
+                    
+                    return response()->json([
+                        'success' => false,
+                        'data' => [
+                            'payment_id' => $payment->id,
+                            'status' => 'failed',
+                            'message' => 'Paiement échoué ou annulé'
+                        ]
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'payment_id' => $payment->id,
+                            'status' => 'pending',
+                            'message' => 'Paiement en cours de traitement'
+                        ]
+                    ]);
+                }
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Impossible de vérifier le statut du paiement',
+                    'error' => $result['error']
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Erreur vérification paiement: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la vérification du paiement'
+            ], 500);
+        }
     }
 
     /**

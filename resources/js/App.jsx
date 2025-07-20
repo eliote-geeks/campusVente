@@ -23,6 +23,7 @@ import MyRatings from './pages/MyRatings.jsx';
 import Notifications from './pages/Notifications.jsx';
 import EditAnnouncement from './pages/EditAnnouncement.jsx';
 import CampusLove from './pages/CampusLove.jsx';
+import CampusLoveProfile from './pages/CampusLoveProfile.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 
 // Composant pour protéger les routes privées
@@ -197,6 +198,14 @@ const AppContent = () => {
                             element={
                                 <PrivateRoute>
                                     <CampusLove />
+                                </PrivateRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/campus-love-profile" 
+                            element={
+                                <PrivateRoute>
+                                    <CampusLoveProfile />
                                 </PrivateRoute>
                             } 
                         />
