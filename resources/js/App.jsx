@@ -22,8 +22,8 @@ import Favorites from './pages/Favorites.jsx';
 import MyRatings from './pages/MyRatings.jsx';
 import Notifications from './pages/Notifications.jsx';
 import EditAnnouncement from './pages/EditAnnouncement.jsx';
-import CampusLove from './pages/CampusLove.jsx';
-import CampusLoveProfile from './pages/CampusLoveProfile.jsx';
+import CampusLove from './pages/CampusLoveModern.jsx';
+import CampusLoveProfile from './pages/CampusLoveProfileModern.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 
 // Composant pour protéger les routes privées

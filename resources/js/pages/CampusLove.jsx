@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Button, Modal, Form, Tab, Tabs, Badge, Alert, Spinner } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { Heart, X, Star, MessageCircle, Settings, Eye, EyeSlash, Lock } from 'lucide-react';
+import { Heart, X, Star, MessageCircle, Settings, Eye, EyeOff, Lock, User, MapPin, Calendar, GraduationCap } from 'lucide-react';
 import axios from 'axios';
 import CampusLoveAccess from '../components/CampusLoveAccess.jsx';
 import CampusLoveAccessGitHub from '../components/CampusLoveAccessGitHub.jsx';
 import CampusLoveMediaUpload from '../components/CampusLoveMediaUpload.jsx';
-import './CampusLove.css';
+import '../../css/CampusLove.css';
 
 const CampusLove = () => {
     const { user } = useAuth();
@@ -351,7 +351,7 @@ const CampusLove = () => {
                                 className="profile-image"
                                 style={{ opacity: index === currentPhotoIndex ? 1 : 0 }}
                                 onError={(e) => {
-                                    e.target.src = 'https://via.placeholder.com/400x600/ff6b6b/white?text=Photo';
+                                    e.target.src = '/api/placeholder/400/600?text=Photo&bg=ff6b6b&color=white';
                                 }}
                             />
                         ))}
@@ -462,7 +462,7 @@ const CampusLove = () => {
                             alt={match.other_user.name}
                             className="match-photo"
                             onError={(e) => {
-                                e.target.src = 'https://via.placeholder.com/160x140/ff6b6b/white?text=Photo';
+                                e.target.src = '/api/placeholder/160/140?text=Photo&bg=ff6b6b&color=white';
                             }}
                         />
                         <div className="match-info">

@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import CampusLove styles */
+@import './CampusLove.css';
+
 /* Custom styles for modern social network */
 :root {
     --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

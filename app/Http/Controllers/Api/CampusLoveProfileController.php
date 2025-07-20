@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
-use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class CampusLoveProfileController extends Controller
 {
@@ -308,7 +309,13 @@ class CampusLoveProfileController extends Controller
             // Créer le dossier utilisateur s'il n'existe pas
             $userDir = 'public/campus_love/' . $user->id;
             if (!Storage::exists($userDir)) {
-                Storage::makeDirectory($userDir);
+                Storage::makeDirectory($userDir, 0755, true);
+            }
+            
+            // S'assurer que le dossier physique existe aussi
+            $physicalDir = storage_path('app/public/campus_love/' . $user->id);
+            if (!is_dir($physicalDir)) {
+                mkdir($physicalDir, 0755, true);
             }
             
             $filename = time() . '_' . uniqid() . '.jpg'; // Toujours en JPG après traitement
@@ -316,7 +323,8 @@ class CampusLoveProfileController extends Controller
             $fullPath = storage_path('app/public/' . $photoPath);
             
             // Redimensionner et optimiser l'image
-            $image = Image::read($photo->getPathname());
+            $manager = new ImageManager(new Driver());
+            $image = $manager->read($photo->getPathname());
             
             // Redimensionner pour le swipe (maximum 1080px de largeur, qualité optimisée)
             $image->scaleDown(width: 1080);
@@ -328,7 +336,7 @@ class CampusLoveProfileController extends Controller
             $thumbnailPath = 'campus_love/' . $user->id . '/thumb_' . $filename;
             $thumbnailFullPath = storage_path('app/public/' . $thumbnailPath);
             
-            $thumbnail = Image::read($photo->getPathname());
+            $thumbnail = $manager->read($photo->getPathname());
             $thumbnail->scaleDown(width: 500);
             $thumbnail->toJpeg(80)->save($thumbnailFullPath);
 
@@ -811,7 +819,13 @@ class CampusLoveProfileController extends Controller
                 // Créer le dossier utilisateur s'il n'existe pas
                 $userDir = 'public/campus_love/' . $user->id;
                 if (!Storage::exists($userDir)) {
-                    Storage::makeDirectory($userDir);
+                    Storage::makeDirectory($userDir, 0755, true);
+                }
+                
+                // S'assurer que le dossier physique existe aussi
+                $physicalDir = storage_path('app/public/campus_love/' . $user->id);
+                if (!is_dir($physicalDir)) {
+                    mkdir($physicalDir, 0755, true);
                 }
                 
                 $filename = time() . '_' . uniqid() . '_' . $index . '.jpg';
@@ -819,14 +833,15 @@ class CampusLoveProfileController extends Controller
                 $fullPath = storage_path('app/public/' . $photoPath);
                 
                 // Redimensionner et optimiser l'image
-                $image = Image::read($photo->getPathname());
+                $manager = new ImageManager(new Driver());
+                $image = $manager->read($photo->getPathname());
                 $image->scaleDown(width: 1080);
                 $image->toJpeg(85)->save($fullPath);
                 
                 // Créer une version thumbnail
                 $thumbnailPath = 'campus_love/' . $user->id . '/thumb_' . $filename;
                 $thumbnailFullPath = storage_path('app/public/' . $thumbnailPath);
-                $thumbnail = Image::read($photo->getPathname());
+                $thumbnail = $manager->read($photo->getPathname());
                 $thumbnail->scaleDown(width: 500);
                 $thumbnail->toJpeg(80)->save($thumbnailFullPath);
 
