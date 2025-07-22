@@ -93,6 +93,18 @@ Route::prefix('v1')->group(function () {
     Route::post('/announcements/{announcement}/update-with-files', [AnnouncementController::class, 'updateWithFiles']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
     Route::post('/announcements/{announcement}/status', [AnnouncementController::class, 'updateStatus']);
+    
+    // Dashboard statistics (admin only)
+    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::get('/dashboard/overview', [DashboardController::class, 'getOverview']);
+        Route::get('/dashboard/recent-activity', [DashboardController::class, 'getRecentActivity']);
+        Route::get('/dashboard/announcements-by-category', [DashboardController::class, 'getAnnouncementsByCategory']);
+        Route::get('/dashboard/announcements-by-type', [DashboardController::class, 'getAnnouncementsByType']);
+        Route::get('/dashboard/monthly-growth', [DashboardController::class, 'getMonthlyGrowth']);
+        Route::get('/dashboard/top-universities', [DashboardController::class, 'getTopUniversities']);
+        Route::get('/dashboard/meetings-by-type', [DashboardController::class, 'getMeetingsByType']);
+        Route::get('/dashboard/meetings-by-status', [DashboardController::class, 'getMeetingsByStatus']);
+    });
 
     // Users management - temporarily public for testing
     Route::get('/users', [UserController::class, 'index']);
@@ -108,15 +120,6 @@ Route::prefix('v1')->group(function () {
     Route::delete('/users/{user}', [UserController::class, 'destroy']);
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus']);
 
-    // Dashboard statistics
-    Route::get('/dashboard/overview', [DashboardController::class, 'getOverview']);
-    Route::get('/dashboard/recent-activity', [DashboardController::class, 'getRecentActivity']);
-    Route::get('/dashboard/announcements-by-category', [DashboardController::class, 'getAnnouncementsByCategory']);
-    Route::get('/dashboard/announcements-by-type', [DashboardController::class, 'getAnnouncementsByType']);
-    Route::get('/dashboard/monthly-growth', [DashboardController::class, 'getMonthlyGrowth']);
-    Route::get('/dashboard/top-universities', [DashboardController::class, 'getTopUniversities']);
-    Route::get('/dashboard/meetings-by-type', [DashboardController::class, 'getMeetingsByType']);
-    Route::get('/dashboard/meetings-by-status', [DashboardController::class, 'getMeetingsByStatus']);
 
     // Meetings management - temporarily public for testing
     Route::get('/meetings', [MeetingController::class, 'index']);

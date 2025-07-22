@@ -19,20 +19,8 @@ class CampusLoveController extends Controller
     public function __construct()
     {
         $this->middleware('auth:sanctum')->except(['checkAccess', 'getAccessInfo']);
-        $this->middleware('campus_love_access')->except([
-            'checkAccess', 
-            'getAccessInfo', 
-            'getDatingProfile', 
-            'updateDatingProfile',
-            'getProfiles',
-            'getMatches', 
-            'getLikedProfiles',
-            'getStats',
-            'likeProfile',
-            'skipProfile',
-            'passProfile',
-            'startConversation'
-        ]);
+        // Remove campus_love_access middleware to allow freemium access
+        // Access control will be handled at application level
     }
 
     /**
@@ -119,6 +107,15 @@ class CampusLoveController extends Controller
     {
         try {
             $user = Auth::user();
+            
+            // Accorder automatiquement l'accès de base à CampusLove
+            if (!$user->campus_love_access) {
+                $user->update([
+                    'campus_love_access' => true,
+                    'campus_love_activated_at' => now()
+                ]);
+                Log::info('Accès de base CampusLove accordé à l\'utilisateur: ' . $user->id);
+            }
             
             // Vérifier si l'utilisateur a un profil dating complet
             if (!$user->hasDatingProfile()) {

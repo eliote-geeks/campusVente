@@ -98,9 +98,11 @@ const Navigation = () => {
                         <Nav.Link as={Link} to="/" className="fw-semibold text-dark px-3">
                             🏠 Accueil
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/dashboard" className="fw-semibold text-dark px-3">
-                            📊 Dashboard
-                        </Nav.Link>
+                        {(currentUser?.is_admin || userProfile?.is_admin) && (
+                            <Nav.Link as={Link} to="/dashboard" className="fw-semibold text-dark px-3">
+                                📊 Dashboard
+                            </Nav.Link>
+                        )}
                         <Nav.Link as={Link} to="/announcements" className="fw-semibold text-dark px-3">
                             📢 Annonces
                         </Nav.Link>
@@ -139,7 +141,12 @@ const Navigation = () => {
                                             </small>
                                         )}
                                     </div>
-                                    {(currentUser?.is_student || currentUser?.isStudent) && (
+                                    {(currentUser?.is_admin || userProfile?.is_admin) && (
+                                        <Badge bg="danger" className="ms-1" style={{fontSize: '10px'}}>
+                                            Admin
+                                        </Badge>
+                                    )}
+                                    {(currentUser?.is_student || currentUser?.isStudent) && !(currentUser?.is_admin || userProfile?.is_admin) && (
                                         <Badge bg="primary" className="ms-1" style={{fontSize: '10px'}}>
                                             Étudiant
                                         </Badge>
