@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     // Authentification
     Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
 
     // Universités
     Route::get('/universities', function () {
@@ -283,12 +283,15 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         // Routes existantes (à adapter plus tard)
         Route::get('/profiles', [CampusLoveController::class, 'getProfiles']);
         Route::post('/like', [CampusLoveController::class, 'likeProfile']);
+        Route::post('/pass', [CampusLoveController::class, 'passProfile']);
         Route::post('/skip', [CampusLoveController::class, 'skipProfile']);
         Route::get('/matches', [CampusLoveController::class, 'getMatches']);
         Route::post('/start-conversation', [CampusLoveController::class, 'startConversation']);
         Route::put('/profile', [CampusLoveController::class, 'updateDatingProfile']);
         Route::get('/profile', [CampusLoveController::class, 'getDatingProfile']);
         Route::get('/stats', [CampusLoveController::class, 'getStats']);
+        Route::get('/liked-profiles', [CampusLoveController::class, 'getLikedProfiles']);
+        Route::get('/passed-profiles', [CampusLoveController::class, 'getPassedProfiles']);
     });
     
     // Routes pour paiement CampusLove
@@ -305,6 +308,9 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     
     // Autres endpoints protégés
     Route::get('/users/{userId}/announcements', [AnnouncementController::class, 'getUserAnnouncements']);
+    
+    // Route pour l'upload des photos de dating
+    Route::post('/upload-dating-photo', [UserController::class, 'uploadDatingPhoto']);
     
     // Gestion des annonces utilisateur
     Route::get('/my-announcements', [AnnouncementController::class, 'getUserAnnouncements']);

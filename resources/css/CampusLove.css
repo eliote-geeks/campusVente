@@ -286,14 +286,18 @@
 }
 
 .action-btn.reject {
-  background: white;
+  background: rgba(255, 255, 255, 0.9);
   color: #666;
   box-shadow: var(--shadow-sm);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .action-btn.reject:hover {
   color: #ff4757;
   box-shadow: var(--shadow-md);
+  border-color: #ff4757;
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .action-btn.like {

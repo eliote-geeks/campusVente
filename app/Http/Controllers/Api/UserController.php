@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -125,15 +127,25 @@ class UserController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
-            'university' => 'nullable|string|max:255',
-            'study_level' => 'nullable|string|max:100',
-            'field' => 'nullable|string|max:100',
-            'bio' => 'nullable|string',
-            'location' => 'nullable|string|max:255',
-            'is_student' => 'boolean',
-            'verified' => 'boolean'
-        ]);
+                'phone' => 'nullable|string|max:20',
+                'university' => 'nullable|string|max:255',
+                'study_level' => 'nullable|string|max:100',
+                'field' => 'nullable|string|max:100',
+                'bio' => 'nullable|string',
+                'location' => 'nullable|string|max:255',
+                'is_student' => 'boolean',
+                'verified' => 'boolean',
+                // Champs CampusLove
+                'birth_date' => 'nullable|date|before:today',
+                'gender' => 'nullable|in:male,female,other',
+                'looking_for' => 'nullable|in:male,female,both',
+                'bio_dating' => 'nullable|string|max:500',
+                'whatsapp_number' => 'nullable|string|max:20',
+                'dating_active' => 'boolean',
+                'max_distance' => 'nullable|integer|min:1|max:100',
+                'dating_photos' => 'nullable|array|max:6',
+                'dating_photos.*' => 'nullable|string|max:500'
+            ]);
 
         $updateData = [
             'name' => $request->name,
@@ -145,7 +157,16 @@ class UserController extends Controller
             'bio' => $request->bio,
             'location' => $request->location,
             'is_student' => $request->is_student ?? true,
-            'verified' => $request->verified ?? $user->verified
+            'verified' => $request->verified ?? $user->verified,
+            // Champs CampusLove
+            'birth_date' => $request->birth_date,
+            'gender' => $request->gender,
+            'looking_for' => $request->looking_for,
+            'bio_dating' => $request->bio_dating,
+            'whatsapp_number' => $request->whatsapp_number,
+            'dating_active' => $request->boolean('dating_active', false),
+            'max_distance' => $request->max_distance ?? 50,
+            'dating_photos' => $request->dating_photos ?? []
         ];
 
         // Update password if provided
@@ -216,5 +237,52 @@ class UserController extends Controller
             'success' => true,
             'data' => $stats
         ]);
+    }
+
+    /**
+     * Upload a dating photo
+     */
+    public function uploadDatingPhoto(Request $request)
+    {
+        try {
+            $request->validate([
+                'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+            ]);
+
+            if (!$request->hasFile('photo')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucune photo fournie'
+                ], 400);
+            }
+
+            $file = $request->file('photo');
+            $filename = 'dating_photos/' . Str::random(40) . '.' . $file->getClientOriginalExtension();
+            
+            // Stocker le fichier
+            $path = Storage::disk('public')->put($filename, file_get_contents($file));
+            
+            if (!$path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors de l\'upload de l\'image'
+                ], 500);
+            }
+
+            $url = Storage::disk('public')->url($filename);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Photo uploadée avec succès',
+                'url' => $url,
+                'filename' => $filename
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'upload: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

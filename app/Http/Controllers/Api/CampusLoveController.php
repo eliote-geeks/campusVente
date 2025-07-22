@@ -4,19 +4,35 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\CampusLoveProfile;
 use App\Models\StudentLike;
 use App\Models\StudentMatch;
+use App\Models\StudentPass;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CampusLoveController extends Controller
 {
     public function __construct()
     {
         $this->middleware('auth:sanctum')->except(['checkAccess', 'getAccessInfo']);
-        $this->middleware('campus_love_access')->except(['checkAccess', 'getAccessInfo']);
+        $this->middleware('campus_love_access')->except([
+            'checkAccess', 
+            'getAccessInfo', 
+            'getDatingProfile', 
+            'updateDatingProfile',
+            'getProfiles',
+            'getMatches', 
+            'getLikedProfiles',
+            'getStats',
+            'likeProfile',
+            'skipProfile',
+            'passProfile',
+            'startConversation'
+        ]);
     }
 
     /**
@@ -128,6 +144,7 @@ class CampusLoveController extends Controller
                     'bio' => $profile->bio_dating ?? $profile->bio,
                     'interests' => $profile->interests ?? [],
                     'photos' => $profile->dating_photos ?? [],
+                    'dating_photos' => $profile->dating_photos ?? [],
                     'location' => $profile->location,
                     'distance' => rand(1, 50), // TODO: Calculer la vraie distance
                 ];
@@ -233,13 +250,13 @@ class CampusLoveController extends Controller
                 'target_user_id' => 'required|exists:users,id'
             ]);
 
-            // Pour l'instant, on ne fait rien de spécial pour les skip
-            // On pourrait ajouter une table pour tracker les skips si nécessaire
+            $user = Auth::user();
+            $targetUserId = $request->target_user_id;
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Profil passé'
-            ]);
+            // Créer le pass
+            $result = StudentPass::createPass($user->id, $targetUserId);
+
+            return response()->json($result, $result['success'] ? 200 : 400);
 
         } catch (\Exception $e) {
             Log::error('Erreur skip profil', [
@@ -366,7 +383,7 @@ class CampusLoveController extends Controller
                 'dating_active' => 'boolean',
                 'max_distance' => 'integer|min:1|max:100',
                 'dating_photos' => 'nullable|array|max:6',
-                'dating_photos.*' => 'string|max:255'
+                'dating_photos.*' => 'string|max:5000000'
             ]);
 
             $user = Auth::user();
@@ -448,6 +465,14 @@ class CampusLoveController extends Controller
     }
 
     /**
+     * Passer un profil (alias de skipProfile)
+     */
+    public function passProfile(Request $request)
+    {
+        return $this->skipProfile($request);
+    }
+
+    /**
      * Obtenir les statistiques de l'utilisateur
      */
     public function getStats(Request $request)
@@ -455,13 +480,43 @@ class CampusLoveController extends Controller
         try {
             $user = Auth::user();
 
+            $totalLikesSent = $user->sentLikes()->count();
+            $totalLikesReceived = $user->receivedLikes()->count();
+            $totalMatches = $user->getAllMatches()->count();
+            $totalPasses = StudentPass::where('passer_id', $user->id)->count();
+            $conversationsStarted = $user->getAllMatches()->where('conversation_started', true)->count();
+            
+            // Calculer les taux
+            $totalSwipes = $totalLikesSent + $totalPasses;
+            $matchRate = $totalLikesSent > 0 ? round(($totalMatches / $totalLikesSent) * 100, 1) : 0;
+            $likeRate = $totalSwipes > 0 ? round(($totalLikesSent / $totalSwipes) * 100, 1) : 0;
+            $responseRate = $totalMatches > 0 ? round(($conversationsStarted / $totalMatches) * 100, 1) : 0;
+            
+            // Profil populaire si plus de likes reçus que envoyés
+            $isPopular = $totalLikesReceived > $totalLikesSent;
+            
+            // Super likes donnés et reçus
+            $superLikesGiven = $user->sentLikes()->where('is_super_like', true)->count();
+            $superLikesReceived = $user->receivedLikes()->where('is_super_like', true)->count();
+
             $stats = [
-                'total_likes_sent' => $user->sentLikes()->count(),
-                'total_likes_received' => $user->receivedLikes()->count(),
-                'total_matches' => $user->getAllMatches()->count(),
-                'conversations_started' => $user->getAllMatches()->where('conversation_started', true)->count(),
+                'total_likes_sent' => $totalLikesSent,
+                'total_likes_received' => $totalLikesReceived,
+                'total_matches' => $totalMatches,
+                'total_passes' => $totalPasses,
+                'total_swipes' => $totalSwipes,
+                'conversations_started' => $conversationsStarted,
+                'super_likes_given' => $superLikesGiven,
+                'super_likes_received' => $superLikesReceived,
+                'match_rate' => $matchRate,
+                'like_rate' => $likeRate,
+                'response_rate' => $responseRate,
                 'profile_complete' => $user->hasDatingProfile(),
                 'dating_active' => $user->dating_active,
+                'is_popular' => $isPopular,
+                'profile_views' => rand(15, 150), // TODO: Implémenter le vrai tracking des vues
+                'active_days' => 30, // TODO: Calculer les vrais jours d'activité
+                'last_activity' => $user->updated_at,
             ];
 
             return response()->json([
@@ -478,6 +533,107 @@ class CampusLoveController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des statistiques'
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtenir les profils likés par l'utilisateur
+     */
+    public function getLikedProfiles(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $likedProfiles = StudentLike::where('liker_id', $user->id)
+                ->with(['liked' => function($query) {
+                    $query->select('id', 'name', 'birth_date', 'university', 'dating_photos', 'bio_dating', 'bio');
+                }])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Formater les données pour le frontend
+            $formattedLikes = $likedProfiles->map(function ($like) {
+                return [
+                    'id' => $like->id,
+                    'liked_user' => [
+                        'id' => $like->liked->id,
+                        'name' => $like->liked->name,
+                        'age' => $like->liked->getAge(),
+                        'university' => $like->liked->university,
+                        'dating_photos' => $like->liked->dating_photos ?? [],
+                        'bio_dating' => $like->liked->bio_dating,
+                        'bio' => $like->liked->bio,
+                    ],
+                    'is_super_like' => $like->is_super_like,
+                    'created_at' => $like->created_at,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedLikes
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur récupération profils likés', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des profils likés'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Obtenir les profils refusés par l'utilisateur
+     */
+    public function getPassedProfiles(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $passedProfiles = StudentPass::where('passer_id', $user->id)
+                ->with(['passed' => function($query) {
+                    $query->select('id', 'name', 'birth_date', 'university', 'dating_photos', 'bio_dating', 'bio');
+                }])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Formater les données pour le frontend
+            $formattedPasses = $passedProfiles->map(function ($pass) {
+                return [
+                    'id' => $pass->id,
+                    'passed_user' => [
+                        'id' => $pass->passed->id,
+                        'name' => $pass->passed->name,
+                        'age' => $pass->passed->getAge(),
+                        'university' => $pass->passed->university,
+                        'dating_photos' => $pass->passed->dating_photos ?? [],
+                        'bio_dating' => $pass->passed->bio_dating,
+                        'bio' => $pass->passed->bio,
+                    ],
+                    'passed_at' => $pass->created_at,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedPasses
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur récupération profils refusés', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des profils refusés'
             ], 500);
         }
     }
