@@ -26,6 +26,7 @@ const CampusLoveModern = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showProfile, setShowProfile] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [profileLoading, setProfileLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
@@ -109,12 +110,17 @@ const CampusLoveModern = () => {
                         match.other_user.dating_photos[0] : 
                         'https://via.placeholder.com/300x300/ff6b6b/white?text=?',
                     whatsapp: match.whatsapp_url,
-                    lastMessage: match.last_message || 'Nouveau match !',
-                    lastMessageTime: match.matched_at ? new Date(match.matched_at).toLocaleDateString() : 'Récemment',
-                    isOnline: false, // TODO: Implémenter le statut en ligne
                     matchDate: match.matched_at
                 }));
                 setMatches(formattedMatches);
+                
+                // Gérer les informations de limite premium
+                if (response.data.matches_limit_reached) {
+                    showAlert(
+                        `Vous avez atteint la limite de 6 matches gratuits. Abonnez-vous pour ${response.data.premium_info.price} ${response.data.premium_info.currency} et débloquez des matches illimités !`,
+                        'warning'
+                    );
+                }
             }
         } catch (error) {
             console.error('Erreur chargement matches:', error);
@@ -228,13 +234,16 @@ const CampusLoveModern = () => {
                         university: currentProfile.university,
                         image: currentProfile.images[0],
                         whatsapp: response.data.match.whatsapp_url,
-                        lastMessage: 'Nouveau match !',
-                        lastMessageTime: 'Maintenant',
-                        isOnline: false,
                         matchDate: response.data.match.matched_at
                     };
                     setMatches(prev => [newMatch, ...prev]);
                     showAlert(`C'est un match avec ${currentProfile.name} ! 💕`, 'success');
+                } else if (response.data.needs_premium) {
+                    // Limite de matches atteinte
+                    showAlert(
+                        `Limite de 6 matches atteinte ! Abonnez-vous pour ${response.data.premium_info.price} ${response.data.premium_info.currency} et débloquez des matches illimités.`,
+                        'warning'
+                    );
                 }
             } else if (direction === 'left') {
                 await api.post('/campus-love/pass', {
@@ -243,7 +252,27 @@ const CampusLoveModern = () => {
             }
         } catch (error) {
             console.error('Erreur lors du swipe:', error);
-            showAlert('Erreur lors de l\'action', 'danger');
+            
+            // Gérer les différents types d'erreurs
+            if (error.response?.status === 402) {
+                // Payment Required - limite de matches atteinte
+                const errorData = error.response.data;
+                setShowPremiumModal(true);
+                if (errorData.premium_info) {
+                    showAlert(
+                        `${errorData.message} Abonnez-vous pour ${errorData.premium_info.price} ${errorData.premium_info.currency} et débloquez des matches illimités !`,
+                        'warning'
+                    );
+                } else {
+                    showAlert('Limite de matches atteinte. Abonnement requis.', 'warning');
+                }
+            } else if (error.response?.status === 400) {
+                // Bad Request
+                const message = error.response.data?.message || 'Erreur lors de l\'action';
+                showAlert(message, 'danger');
+            } else {
+                showAlert('Erreur lors de l\'action', 'danger');
+            }
         }
         
         setTimeout(() => {
@@ -703,8 +732,9 @@ const CampusLoveModern = () => {
                                                 
                                                 <div className="last-message mb-3">
                                                     <small className="text-muted">Dernier message:</small>
-                                                    <p className="mb-1 small">{match.lastMessage}</p>
-                                                    <small className="text-muted">{match.lastMessageTime}</small>
+                                                    <small className="text-muted">
+                                                        {match.matchDate ? new Date(match.matchDate).toLocaleDateString() : 'Récemment'}
+                                                    </small>
                                                 </div>
 
                                                 <Button 
@@ -1424,6 +1454,90 @@ const CampusLoveModern = () => {
                     </Button>
                     <Button variant="primary">
                         Sauvegarder
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            {/* Modal d'abonnement Premium */}
+            <Modal 
+                show={showPremiumModal} 
+                onHide={() => setShowPremiumModal(false)}
+                size="lg"
+                backdrop="static"
+                centered
+            >
+                <Modal.Header closeButton className="border-0">
+                    <Modal.Title className="d-flex align-items-center">
+                        <Zap className="text-warning me-2" size={24} />
+                        Abonnement Premium CampusLove
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <div className="text-center mb-4">
+                        <div className="display-4 text-primary mb-2">💎</div>
+                        <h4>Limite de matches gratuits atteinte !</h4>
+                        <p className="text-muted">
+                            Vous avez utilisé vos 6 matches gratuits. Passez au Premium pour continuer à découvrir de nouvelles personnes.
+                        </p>
+                    </div>
+
+                    <div className="premium-benefits mb-4">
+                        <h5 className="mb-3">Avantages Premium :</h5>
+                        <div className="row">
+                            <div className="col-md-6">
+                                <div className="d-flex align-items-center mb-2">
+                                    <Heart className="text-danger me-2" size={18} />
+                                    <span>Matches illimités</span>
+                                </div>
+                                <div className="d-flex align-items-center mb-2">
+                                    <Star className="text-warning me-2" size={18} />
+                                    <span>Super likes illimités</span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="d-flex align-items-center mb-2">
+                                    <TrendingUp className="text-success me-2" size={18} />
+                                    <span>Statistiques avancées</span>
+                                </div>
+                                <div className="d-flex align-items-center mb-2">
+                                    <Users className="text-info me-2" size={18} />
+                                    <span>Priorité dans les suggestions</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pricing-card bg-gradient-primary text-white p-4 rounded-4 text-center">
+                        <div className="display-6 fw-bold">2 000 FCFA</div>
+                        <div className="fs-5">Abonnement à vie</div>
+                        <small className="opacity-75">Paiement unique • Pas d'abonnement récurrent</small>
+                    </div>
+
+                    <div className="payment-methods mt-4">
+                        <h6>Moyens de paiement acceptés :</h6>
+                        <div className="d-flex justify-content-center gap-3 mt-2">
+                            <Badge bg="success">MTN Mobile Money</Badge>
+                            <Badge bg="warning">Orange Money</Badge>
+                            <Badge bg="primary">Express Union Mobile</Badge>
+                            <Badge bg="info">Cartes bancaires</Badge>
+                        </div>
+                    </div>
+                </Modal.Body>
+                <Modal.Footer className="border-0">
+                    <Button variant="outline-secondary" onClick={() => setShowPremiumModal(false)}>
+                        Plus tard
+                    </Button>
+                    <Button 
+                        variant="primary" 
+                        size="lg"
+                        onClick={() => {
+                            setShowPremiumModal(false);
+                            // Redirection vers le paiement
+                            window.location.href = '/payment/campus-love-premium';
+                        }}
+                    >
+                        <Zap className="me-2" size={18} />
+                        Souscrire maintenant
                     </Button>
                 </Modal.Footer>
             </Modal>

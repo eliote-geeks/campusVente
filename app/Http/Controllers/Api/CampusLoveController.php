@@ -174,6 +174,11 @@ class CampusLoveController extends Controller
     public function likeProfile(Request $request)
     {
         try {
+            Log::info('Tentative de like profil', [
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
+
             $request->validate([
                 'target_user_id' => 'required|exists:users,id',
                 'is_super_like' => 'boolean'
@@ -194,12 +199,47 @@ class CampusLoveController extends Controller
             // Créer le like et vérifier s'il y a match
             $result = StudentLike::createLike($user->id, $targetUserId, $isSuperLike);
 
+            Log::info('Résultat like profil', [
+                'user_id' => Auth::id(),
+                'target_user_id' => $targetUserId,
+                'result' => $result
+            ]);
+
             if (!$result['success']) {
                 return response()->json($result, 400);
             }
 
-            // Si c'est un match, retourner les informations supplémentaires
+            // Si c'est un match, vérifier la limite des matches gratuits
             if ($result['is_match']) {
+                $totalMatches = $user->getAllMatches()->count();
+                $hasPremium = $user->hasActivePremiumSubscription();
+                
+                Log::info('Vérification limite matches', [
+                    'user_id' => Auth::id(),
+                    'total_matches' => $totalMatches,
+                    'has_premium' => $hasPremium
+                ]);
+                
+                // Vérifier si l'utilisateur a dépassé la limite de 6 matches
+                if ($totalMatches > 6 && !$hasPremium) {
+                    // Supprimer le match créé car l'utilisateur a dépassé la limite
+                    if (isset($result['match']) && $result['match']) {
+                        $result['match']->delete();
+                    }
+                    
+                    return response()->json([
+                        'success' => false,
+                        'is_match' => false,
+                        'needs_premium' => true,
+                        'message' => 'Limite de 6 matches atteinte. Abonnez-vous pour plus de matches !',
+                        'premium_info' => [
+                            'price' => 2000,
+                            'currency' => 'FCFA',
+                            'description' => 'Abonnement à vie - Matches illimités'
+                        ]
+                    ], 402);
+                }
+                
                 $match = $result['match'];
                 $otherUser = $match->getOtherUser($user->id);
                 
@@ -226,16 +266,31 @@ class CampusLoveController extends Controller
                 'message' => $result['message']
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('Erreur like profil', [
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Erreur validation like profil', [
                 'error' => $e->getMessage(),
+                'errors' => $e->errors(),
                 'user_id' => Auth::id(),
-                'target_user_id' => $request->target_user_id ?? null
+                'request_data' => $request->all()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors du like'
+                'message' => 'Données invalides',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur like profil', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+                'target_user_id' => $request->target_user_id ?? null,
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du like: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -246,6 +301,11 @@ class CampusLoveController extends Controller
     public function skipProfile(Request $request)
     {
         try {
+            Log::info('Tentative de skip profil', [
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
+
             $request->validate([
                 'target_user_id' => 'required|exists:users,id'
             ]);
@@ -256,17 +316,38 @@ class CampusLoveController extends Controller
             // Créer le pass
             $result = StudentPass::createPass($user->id, $targetUserId);
 
+            Log::info('Résultat skip profil', [
+                'user_id' => Auth::id(),
+                'target_user_id' => $targetUserId,
+                'result' => $result
+            ]);
+
             return response()->json($result, $result['success'] ? 200 : 400);
 
-        } catch (\Exception $e) {
-            Log::error('Erreur skip profil', [
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Erreur validation skip profil', [
                 'error' => $e->getMessage(),
-                'user_id' => Auth::id()
+                'errors' => $e->errors(),
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors du skip'
+                'message' => 'Données invalides',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur skip profil', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du skip: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -279,6 +360,13 @@ class CampusLoveController extends Controller
         try {
             $user = Auth::user();
             $matches = $user->getAllMatches();
+            $totalMatches = $matches->count();
+            $hasPremium = $user->hasActivePremiumSubscription();
+
+            // Limiter à 6 matches pour les utilisateurs gratuits
+            if (!$hasPremium && $totalMatches > 6) {
+                $matches = $matches->take(6);
+            }
 
             // Formater les données pour le frontend
             $formattedMatches = $matches->map(function ($match) use ($user) {
@@ -297,13 +385,21 @@ class CampusLoveController extends Controller
                     'conversation_started' => $match->conversation_started,
                     'conversation_started_at' => $match->conversation_started_at,
                     'whatsapp_url' => $match->getWhatsAppUrlForUser($user->id),
-                    'last_message' => null, // TODO: Implémenter si nécessaire
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $formattedMatches
+                'data' => $formattedMatches,
+                'total_matches' => $totalMatches,
+                'visible_matches' => $matches->count(),
+                'has_premium' => $hasPremium,
+                'matches_limit_reached' => !$hasPremium && $totalMatches > 6,
+                'premium_info' => !$hasPremium && $totalMatches > 6 ? [
+                    'price' => 2000,
+                    'currency' => 'FCFA',
+                    'description' => 'Abonnement à vie - Matches illimités'
+                ] : null
             ]);
 
         } catch (\Exception $e) {

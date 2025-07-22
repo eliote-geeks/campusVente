@@ -237,11 +237,23 @@ class PaymentController extends Controller
                 case 'campus_love':
                     // Activer l'accès à CampusLove pour l'utilisateur
                     if ($payment->user) {
-                        $payment->user->update([
-                            'campus_love_access' => true,
-                            'campus_love_activated_at' => now()
-                        ]);
-                        Log::info('Accès CampusLove activé pour utilisateur: ' . $payment->user->id);
+                        if ($payment->amount >= 2000) {
+                            // Abonnement premium à vie pour 2000 FCFA ou plus
+                            $payment->user->update([
+                                'campus_love_access' => true,
+                                'campus_love_activated_at' => now(),
+                                'campus_love_premium' => true,
+                                'campus_love_premium_activated_at' => now()
+                            ]);
+                            Log::info('Abonnement premium CampusLove activé pour utilisateur: ' . $payment->user->id);
+                        } else {
+                            // Accès de base pour moins de 2000 FCFA
+                            $payment->user->update([
+                                'campus_love_access' => true,
+                                'campus_love_activated_at' => now()
+                            ]);
+                            Log::info('Accès CampusLove de base activé pour utilisateur: ' . $payment->user->id);
+                        }
                     }
                     break;
                     

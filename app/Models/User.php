@@ -42,6 +42,8 @@ class User extends Authenticatable
         'location',
         'is_student',
         'avatar',
+        'campus_love_premium',
+        'campus_love_premium_activated_at',
     ];
 
     /**
@@ -73,6 +75,8 @@ class User extends Authenticatable
             'interests' => 'array',
             'dating_photos' => 'array',
             'dating_preferences' => 'array',
+            'campus_love_premium' => 'boolean',
+            'campus_love_premium_activated_at' => 'datetime',
         ];
     }
 
@@ -293,6 +297,14 @@ class User extends Authenticatable
     public function announcements()
     {
         return $this->hasMany(Announcement::class);
+    }
+
+    /**
+     * Vérifier si l'utilisateur a un abonnement premium actif
+     */
+    public function hasActivePremiumSubscription(): bool
+    {
+        return $this->campus_love_premium && $this->campus_love_premium_activated_at;
     }
 
     /**
