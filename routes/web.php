@@ -66,6 +66,50 @@ Route::get('/extract-build-assets', function () {
     }
 });
 
+// TEMPORARY: Create admin user (REMOVE AFTER USE)
+Route::get('/create-admin-user', function () {
+    // Security check - only allow with specific key
+    $key = request()->get('key');
+    if ($key !== 'campus2025migrate') {
+        abort(403, 'Non autorisé');
+    }
+    
+    try {
+        // Execute the admin user SQL
+        $sqlPath = database_path('admin_user.sql');
+        
+        if (!file_exists($sqlPath)) {
+            throw new Exception('Admin user SQL file not found');
+        }
+        
+        $sql = file_get_contents($sqlPath);
+        DB::unprepared($sql);
+        
+        // Verify admin user was created
+        $admin = DB::table('users')->where('is_admin', 1)->first();
+        
+        if (!$admin) {
+            throw new Exception('Admin user creation failed');
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Admin user created successfully',
+            'admin' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Admin creation failed: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
 // TEMPORARY: Import database schema (REMOVE AFTER USE)
 Route::get('/import-database-schema', function () {
     // Security check - only allow with specific key
