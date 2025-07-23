@@ -27,8 +27,8 @@ CREATE TABLE `announcement_views` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned DEFAULT NULL,
   `announcement_id` bigint unsigned NOT NULL,
-  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `user_agent` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -44,13 +44,13 @@ DROP TABLE IF EXISTS `announcements`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `announcements` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `price` decimal(10,2) NOT NULL,
-  `type` enum('sell','buy','service','exchange') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('active','pending','sold','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  `location` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `type` enum('sell','buy','service','exchange') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('active','pending','sold','inactive') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `location` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `images` json DEFAULT NULL,
   `media` json DEFAULT NULL,
   `user_id` bigint unsigned NOT NULL,
@@ -75,8 +75,8 @@ DROP TABLE IF EXISTS `cache`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `cache` (
-  `key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `value` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `expiration` int NOT NULL,
   PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -85,10 +85,96 @@ DROP TABLE IF EXISTS `cache_locks`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `cache_locks` (
-  `key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `owner` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `owner` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `expiration` int NOT NULL,
   PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `campus_love_profiles`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `campus_love_profiles` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint unsigned NOT NULL,
+  `display_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` text COLLATE utf8mb4_unicode_ci,
+  `tagline` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `about_me` text COLLATE utf8mb4_unicode_ci,
+  `looking_for_description` text COLLATE utf8mb4_unicode_ci,
+  `fun_facts` text COLLATE utf8mb4_unicode_ci,
+  `birth_date` date DEFAULT NULL,
+  `gender` enum('male','female','other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `looking_for` enum('male','female','both') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `city` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `region` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `university` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `study_level` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `field_of_study` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `occupation` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `graduation_year` year DEFAULT NULL,
+  `min_age` int NOT NULL DEFAULT '18',
+  `max_age` int NOT NULL DEFAULT '30',
+  `interests` json DEFAULT NULL,
+  `hobbies` json DEFAULT NULL,
+  `music_preferences` json DEFAULT NULL,
+  `movie_preferences` json DEFAULT NULL,
+  `sport_activities` json DEFAULT NULL,
+  `travel_places` json DEFAULT NULL,
+  `languages` json DEFAULT NULL,
+  `photos` json DEFAULT NULL,
+  `photo_descriptions` json DEFAULT NULL,
+  `photo_locations` json DEFAULT NULL,
+  `photo_tags` json DEFAULT NULL,
+  `profile_photo` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `is_verified` tinyint(1) NOT NULL DEFAULT '0',
+  `has_verified_photos` tinyint(1) NOT NULL DEFAULT '0',
+  `has_social_media_linked` tinyint(1) NOT NULL DEFAULT '0',
+  `response_rate` int NOT NULL DEFAULT '0',
+  `show_age` tinyint(1) NOT NULL DEFAULT '1',
+  `show_distance` tinyint(1) NOT NULL DEFAULT '1',
+  `show_university` tinyint(1) NOT NULL DEFAULT '1',
+  `show_occupation` tinyint(1) NOT NULL DEFAULT '1',
+  `show_hobbies` tinyint(1) NOT NULL DEFAULT '1',
+  `show_music_taste` tinyint(1) NOT NULL DEFAULT '1',
+  `show_travel_history` tinyint(1) NOT NULL DEFAULT '1',
+  `relationship_type` enum('serious','casual','friendship','both') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'both',
+  `social_style` enum('introvert','extrovert','ambivert') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `party_style` enum('homebody','occasional','party_lover') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `communication_style` enum('texter','caller','face_to_face') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `height` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `smoking` enum('never','socially','regularly') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `drinking` enum('never','socially','regularly') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `religion` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `pets` enum('love_pets','no_pets','allergic','neutral') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `kids_future` enum('want_kids','no_kids','maybe','have_kids') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fitness_level` enum('very_active','moderately_active','lightly_active','sedentary') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `diet_type` enum('omnivore','vegetarian','vegan','pescatarian','other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ideal_date_description` text COLLATE utf8mb4_unicode_ci,
+  `weekend_activities` json DEFAULT NULL,
+  `favorite_quote` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `deal_breakers` json DEFAULT NULL,
+  `relationship_goals` json DEFAULT NULL,
+  `last_active` timestamp NULL DEFAULT NULL,
+  `last_photo_update` timestamp NULL DEFAULT NULL,
+  `profile_completed_at` timestamp NULL DEFAULT NULL,
+  `profile_completion_percentage` int NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `campus_love_profiles_user_id_index` (`user_id`),
+  KEY `campus_love_profiles_is_active_index` (`is_active`),
+  KEY `campus_love_profiles_city_region_index` (`city`,`region`),
+  KEY `campus_love_profiles_gender_looking_for_index` (`gender`,`looking_for`),
+  KEY `campus_love_profiles_last_active_index` (`last_active`),
+  KEY `campus_love_profiles_social_style_index` (`social_style`),
+  KEY `campus_love_profiles_fitness_level_index` (`fitness_level`),
+  KEY `campus_love_profiles_has_verified_photos_index` (`has_verified_photos`),
+  KEY `campus_love_profiles_last_photo_update_index` (`last_photo_update`),
+  CONSTRAINT `campus_love_profiles_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `categories`;
@@ -96,10 +182,10 @@ DROP TABLE IF EXISTS `categories`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `categories` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `slug` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `description` text COLLATE utf8mb4_unicode_ci,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `sort_order` int NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
@@ -113,11 +199,11 @@ DROP TABLE IF EXISTS `failed_jobs`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `failed_jobs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `uuid` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `connection` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `queue` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
-  `exception` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `uuid` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `connection` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `queue` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `exception` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
@@ -127,13 +213,13 @@ DROP TABLE IF EXISTS `job_batches`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `job_batches` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `total_jobs` int NOT NULL,
   `pending_jobs` int NOT NULL,
   `failed_jobs` int NOT NULL,
-  `failed_job_ids` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
-  `options` mediumtext COLLATE utf8mb4_unicode_ci,
+  `failed_job_ids` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `options` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `cancelled_at` int DEFAULT NULL,
   `created_at` int NOT NULL,
   `finished_at` int DEFAULT NULL,
@@ -145,8 +231,8 @@ DROP TABLE IF EXISTS `jobs`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `jobs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `queue` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `queue` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `attempts` tinyint unsigned NOT NULL,
   `reserved_at` int unsigned DEFAULT NULL,
   `available_at` int unsigned NOT NULL,
@@ -162,8 +248,8 @@ CREATE TABLE `meeting_participants` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `meeting_id` bigint unsigned NOT NULL,
   `user_id` bigint unsigned NOT NULL,
-  `status` enum('registered','confirmed','attended','absent','cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'registered',
-  `message` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('registered','confirmed','attended','absent','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'registered',
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `is_organizer` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -180,21 +266,21 @@ DROP TABLE IF EXISTS `meetings`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `meetings` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `type` enum('study_group','networking','party','sport','cultural','conference','workshop','other') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'study_group',
-  `status` enum('upcoming','ongoing','completed','cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'upcoming',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` enum('study_group','networking','party','sport','cultural','conference','workshop','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'study_group',
+  `status` enum('upcoming','ongoing','completed','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'upcoming',
   `meeting_date` datetime NOT NULL,
-  `location` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `location` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `max_participants` int DEFAULT NULL,
   `price` decimal(10,2) NOT NULL DEFAULT '0.00',
   `is_free` tinyint(1) NOT NULL DEFAULT '1',
   `is_online` tinyint(1) NOT NULL DEFAULT '0',
-  `online_link` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `online_link` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `images` json DEFAULT NULL,
-  `requirements` text COLLATE utf8mb4_unicode_ci,
-  `contact_info` text COLLATE utf8mb4_unicode_ci,
+  `requirements` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `contact_info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `is_featured` tinyint(1) NOT NULL DEFAULT '0',
   `views` int NOT NULL DEFAULT '0',
   `participants_count` int NOT NULL DEFAULT '0',
@@ -218,7 +304,7 @@ DROP TABLE IF EXISTS `migrations`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `migrations` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `migration` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `migration` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `batch` int NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -227,11 +313,11 @@ DROP TABLE IF EXISTS `notifications`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `notifications` (
-  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `notifiable_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `notifiable_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `notifiable_id` bigint unsigned NOT NULL,
-  `data` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `data` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `read_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -243,8 +329,8 @@ DROP TABLE IF EXISTS `password_reset_tokens`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `password_reset_tokens` (
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -257,21 +343,21 @@ CREATE TABLE `payments` (
   `user_id` bigint unsigned NOT NULL,
   `announcement_id` bigint unsigned DEFAULT NULL,
   `meeting_id` bigint unsigned DEFAULT NULL,
-  `payment_ref` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `transaction_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `payment_ref` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `transaction_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `currency` varchar(3) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'XAF',
-  `type` enum('promotional','meeting','commission') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('pending','processing','completed','failed','cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  `payment_method` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `currency` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'XAF',
+  `type` enum('promotional','meeting','commission','campus_love','other') COLLATE utf8mb4_unicode_ci DEFAULT 'promotional',
+  `status` enum('pending','processing','completed','failed','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `payment_method` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `monetbil_data` json DEFAULT NULL,
-  `monetbil_payment_url` text COLLATE utf8mb4_unicode_ci,
+  `monetbil_payment_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `payment_date` timestamp NULL DEFAULT NULL,
   `completed_at` timestamp NULL DEFAULT NULL,
-  `notes` text COLLATE utf8mb4_unicode_ci,
-  `failure_reason` text COLLATE utf8mb4_unicode_ci,
+  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `failure_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -291,11 +377,11 @@ DROP TABLE IF EXISTS `personal_access_tokens`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `personal_access_tokens` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tokenable_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tokenable_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `tokenable_id` bigint unsigned NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `abilities` text COLLATE utf8mb4_unicode_ci,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `abilities` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `last_used_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -309,11 +395,11 @@ DROP TABLE IF EXISTS `sessions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sessions` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `user_id` bigint unsigned DEFAULT NULL,
-  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `user_agent` text COLLATE utf8mb4_unicode_ci,
-  `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `last_activity` int NOT NULL,
   PRIMARY KEY (`id`),
   KEY `sessions_user_id_index` (`user_id`),
@@ -349,8 +435,8 @@ CREATE TABLE `student_matches` (
   `matched_at` timestamp NOT NULL,
   `conversation_started` tinyint(1) NOT NULL DEFAULT '0',
   `conversation_started_at` timestamp NULL DEFAULT NULL,
-  `whatsapp_url_user1` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `whatsapp_url_user2` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `whatsapp_url_user1` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `whatsapp_url_user2` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -362,19 +448,36 @@ CREATE TABLE `student_matches` (
   CONSTRAINT `student_matches_user2_id_foreign` FOREIGN KEY (`user2_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `student_passes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `student_passes` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `passer_id` bigint unsigned NOT NULL,
+  `passed_id` bigint unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `student_passes_passer_id_passed_id_unique` (`passer_id`,`passed_id`),
+  KEY `student_passes_passer_id_created_at_index` (`passer_id`,`created_at`),
+  KEY `student_passes_passed_id_created_at_index` (`passed_id`,`created_at`),
+  CONSTRAINT `student_passes_passed_id_foreign` FOREIGN KEY (`passed_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `student_passes_passer_id_foreign` FOREIGN KEY (`passer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `universities`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `universities` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `acronym` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `city` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `region` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'public',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `acronym` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `city` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `region` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'public',
   `founded` int DEFAULT NULL,
-  `description` text COLLATE utf8mb4_unicode_ci,
-  `website` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `website` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -389,8 +492,8 @@ CREATE TABLE `user_ratings` (
   `rater_id` bigint unsigned NOT NULL,
   `rated_user_id` bigint unsigned NOT NULL,
   `rating` tinyint unsigned NOT NULL,
-  `comment` text COLLATE utf8mb4_unicode_ci,
-  `transaction_type` enum('announcement','service','general') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'general',
+  `comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `transaction_type` enum('announcement','service','general') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'general',
   `announcement_id` bigint unsigned DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -409,36 +512,44 @@ DROP TABLE IF EXISTS `users`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `birth_date` date DEFAULT NULL,
-  `gender` enum('male','female','other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `looking_for` enum('male','female','both') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `gender` enum('male','female','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `looking_for` enum('male','female','both') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `remember_token` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `whatsapp_number` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `whatsapp_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `dating_active` tinyint(1) NOT NULL DEFAULT '1',
   `max_distance` int NOT NULL DEFAULT '50',
   `dating_preferences` json DEFAULT NULL,
-  `university` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `study_level` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `field` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `bio` text COLLATE utf8mb4_unicode_ci,
-  `bio_dating` text COLLATE utf8mb4_unicode_ci,
+  `university` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `study_level` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `field` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `bio_dating` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `interests` json DEFAULT NULL,
   `dating_photos` json DEFAULT NULL,
-  `location` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `location` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `total_likes_sent` int NOT NULL DEFAULT '0',
+  `total_likes_received` int NOT NULL DEFAULT '0',
+  `total_matches` int NOT NULL DEFAULT '0',
+  `conversations_started` int NOT NULL DEFAULT '0',
   `is_student` tinyint(1) NOT NULL DEFAULT '1',
+  `is_admin` tinyint(1) NOT NULL DEFAULT '0',
   `rating` decimal(3,2) NOT NULL DEFAULT '0.00',
-  `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `verified` tinyint(1) NOT NULL DEFAULT '0',
   `last_seen` timestamp NULL DEFAULT NULL,
   `campus_love_access` tinyint(1) NOT NULL DEFAULT '0',
   `campus_love_activated_at` timestamp NULL DEFAULT NULL,
+  `campus_love_premium` tinyint(1) NOT NULL DEFAULT '0',
+  `campus_love_premium_activated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `users_email_unique` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -479,3 +590,11 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (27,'2025_07_18_080
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (28,'2025_07_18_083009_create_student_matches_table',8);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (29,'2025_07_18_083027_create_student_likes_table',8);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (30,'2025_07_18_083044_add_dating_profile_to_users_table',8);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2025_07_19_114725_add_campus_love_access_to_users_table',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2025_07_19_213906_add_campus_love_to_payments_type_enum',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2025_07_19_232350_create_campus_love_profiles_table',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (34,'2025_07_19_233651_add_detailed_fields_to_campus_love_profiles_table',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (35,'2025_07_19_234817_remove_max_distance_from_campus_love_profiles_table',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (36,'2025_07_22_001654_create_student_passes_table',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (37,'2025_07_22_004336_add_campus_love_premium_to_users_table',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (38,'2025_07_22_233317_add_is_admin_to_users_table',9);

@@ -14,8 +14,8 @@ Route::get('/payment/return/{payment}', function (Payment $payment) {
 // Route pour les images placeholder
 Route::get('/api/placeholder/{width}/{height}', [PlaceholderController::class, 'generate']);
 
-// TEMPORARY: Migration endpoint for production (REMOVE AFTER USE)
-Route::get('/migrate-fresh-production', function () {
+// TEMPORARY: Import database schema (REMOVE AFTER USE)
+Route::get('/import-database-schema', function () {
     // Security check - only allow with specific key
     $key = request()->get('key');
     if ($key !== 'campus2025migrate') {
@@ -23,25 +23,24 @@ Route::get('/migrate-fresh-production', function () {
     }
     
     try {
-        // Disable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // Read the schema file
+        $schemaPath = database_path('schema/mysql-schema.sql');
         
-        // Get all table names
-        $tables = DB::select('SHOW TABLES');
-        $dbName = DB::getDatabaseName();
-        
-        // Drop all tables
-        foreach ($tables as $table) {
-            $tableName = $table->{"Tables_in_$dbName"};
-            DB::statement("DROP TABLE IF EXISTS `$tableName`");
+        if (!file_exists($schemaPath)) {
+            throw new Exception('Schema file not found');
         }
         
-        // Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        $sql = file_get_contents($schemaPath);
         
-        // Run migrations manually
-        $migrator = app('migrator');
-        $migrator->run(database_path('migrations'));
+        // Split SQL into individual statements
+        $statements = array_filter(array_map('trim', explode(';', $sql)));
+        
+        // Execute each statement
+        foreach ($statements as $statement) {
+            if (!empty($statement)) {
+                DB::unprepared($statement);
+            }
+        }
         
         // Run seeders manually
         $seeder = new \Database\Seeders\DatabaseSeeder();
@@ -49,13 +48,13 @@ Route::get('/migrate-fresh-production', function () {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Migration and seeding completed successfully'
+            'message' => 'Database schema imported and seeded successfully'
         ]);
         
     } catch (\Exception $e) {
         return response()->json([
             'status' => 'error',
-            'message' => 'Migration failed: ' . $e->getMessage()
+            'message' => 'Import failed: ' . $e->getMessage()
         ], 500);
     }
 });
