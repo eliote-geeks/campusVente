@@ -56,7 +56,7 @@ CampusVente est une plateforme web complète dédiée aux étudiants universitai
 ### Prérequis
 - PHP 8.2+
 - Composer
-- Node.js 18+
+- Node.js 18+ (ou 20+ pour React Router v7)
 - MySQL
 
 ### Installation Backend
