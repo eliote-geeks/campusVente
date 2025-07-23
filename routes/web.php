@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use App\Models\Payment;
 use App\Http\Controllers\PlaceholderController;
 
@@ -22,15 +23,33 @@ Route::get('/migrate-fresh-production', function () {
     }
     
     try {
-        // Fresh migration with seeders
-        Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+        // Disable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         
-        $output = Artisan::output();
+        // Get all table names
+        $tables = DB::select('SHOW TABLES');
+        $dbName = DB::getDatabaseName();
+        
+        // Drop all tables
+        foreach ($tables as $table) {
+            $tableName = $table->{"Tables_in_$dbName"};
+            DB::statement("DROP TABLE IF EXISTS `$tableName`");
+        }
+        
+        // Re-enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
+        // Run migrations manually
+        $migrator = app('migrator');
+        $migrator->run(database_path('migrations'));
+        
+        // Run seeders manually
+        $seeder = new \Database\Seeders\DatabaseSeeder();
+        $seeder->run();
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Migration completed successfully',
-            'output' => $output
+            'message' => 'Migration and seeding completed successfully'
         ]);
         
     } catch (\Exception $e) {
