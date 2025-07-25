@@ -155,6 +155,40 @@ Route::get('/import-database-schema', function () {
     }
 });
 
+// TEMPORARY: Clear Laravel cache (REMOVE AFTER USE)
+Route::get('/clear-cache', function () {
+    // Security check - only allow with specific key
+    $key = request()->get('key');
+    if ($key !== 'campus2025migrate') {
+        abort(403, 'Non autorisé');
+    }
+    
+    try {
+        // Clear all caches
+        Artisan::call('config:cache');
+        Artisan::call('route:cache');
+        Artisan::call('view:cache');
+        Artisan::call('cache:clear');
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cache cleared and rebuilt successfully',
+            'commands_executed' => [
+                'config:cache',
+                'route:cache', 
+                'view:cache',
+                'cache:clear'
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Cache clear failed: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
 // Route pour servir l'application React
 Route::get('/{path?}', function () {
     return view('app');
