@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, Alert, Spinner, Badge, ProgressBar, Tooltip, OverlayTrigger } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import './CreateMeeting.css';
 
 const CreateMeeting = () => {
@@ -141,7 +142,7 @@ const CreateMeeting = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/v1/categories');
+                const response = await fetch(createApiUrl('/categories'));
                 const data = await response.json();
                 if (data.success) {
                     setCategories(data.data.filter(cat => cat.is_active));
@@ -258,7 +259,7 @@ const CreateMeeting = () => {
         }
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings', {
+            const response = await fetch(createApiUrl('/meetings'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Badge, Alert, Tabs, Tab, ProgressBar } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import Avatar from '../components/Avatar.jsx';
 
 const MyRatings = () => {
@@ -15,7 +16,7 @@ const MyRatings = () => {
     useEffect(() => {
         const fetchReceivedRatings = async () => {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}/ratings`, {
+                const response = await fetch(createApiUrl(`/users/${user.id}/ratings`), {
                     headers: {
                         'Accept': 'application/json'
                     }
@@ -41,7 +42,7 @@ const MyRatings = () => {
     useEffect(() => {
         const fetchGivenRatings = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/v1/my-given-ratings', {
+                const response = await fetch(createApiUrl('/my-given-ratings'), {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Accept': 'application/json'

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -27,7 +28,7 @@ const Register = () => {
         const fetchUniversities = async () => {
             setLoadingUniversities(true);
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/v1/universities');
+                const response = await fetch(createApiUrl('/universities'));
                 const data = await response.json();
                 if (data.success) {
                     setUniversities(data.data);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import Avatar from '../components/Avatar.jsx';
 
 const Favorites = () => {
@@ -24,7 +25,7 @@ const Favorites = () => {
                     // Récupérer les détails des annonces favorites
                     const favoritePromises = savedFavorites.map(async (announcementId) => {
                         try {
-                            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}`, {
+                            const response = await fetch(createApiUrl(`/announcements/${announcementId}`), {
                                 headers: {
                                     'Accept': 'application/json'
                                 }

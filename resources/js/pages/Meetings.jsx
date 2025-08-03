@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, Badge, Modal, Spinner, Alert, Toast, ToastContainer } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { createApiUrl } from '../config/api';
 
 const Meetings = () => {
     const [meetings, setMeetings] = useState([]);
@@ -57,7 +58,7 @@ const Meetings = () => {
     const fetchMeetings = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings');
+            const response = await fetch(createApiUrl('/meetings'));
             const data = await response.json();
             
             if (data.success) {
@@ -75,7 +76,7 @@ const Meetings = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/categories');
+            const response = await fetch(createApiUrl('/categories'));
             const data = await response.json();
             if (data.success) {
                 setCategories(data.data.filter(cat => cat.is_active));
@@ -90,7 +91,7 @@ const Meetings = () => {
         setCreating(true);
         
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings', {
+            const response = await fetch(createApiUrl('/meetings'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -133,7 +134,7 @@ const Meetings = () => {
 
     const handleJoinMeeting = async (meeting) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/meetings/${meeting.id}/join`, {
+            const response = await fetch(createApiUrl(`/meetings/${meeting.id}/join`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

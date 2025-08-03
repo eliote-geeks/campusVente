@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form, Alert, Spinner, Badge, Card, Row, Col } from 'react-bootstrap';
+import { createApiUrl } from '../config/api';
 import './PaymentModal.css';
 
 const PaymentModal = ({ 
@@ -57,7 +58,7 @@ const PaymentModal = ({
                 notes: paymentData.notes
             };
 
-            const response = await fetch('http://127.0.0.1:8000/api/v1/payments/initiate', {
+            const response = await fetch(createApiUrl('/payments/initiate'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -80,7 +81,7 @@ const PaymentModal = ({
                 // Vérifier l'accès toutes les 15 secondes pendant 5 minutes
                 const checkInterval = setInterval(async () => {
                     try {
-                        const statusResponse = await fetch(`http://127.0.0.1:8000/api/v1/payment/${data.data.payment_id}/status`, {
+                        const statusResponse = await fetch(createApiUrl(`/payment/${data.data.payment_id}/status`), {
                             headers: {
                                 'Authorization': `Bearer ${token}`,
                                 'Accept': 'application/json'

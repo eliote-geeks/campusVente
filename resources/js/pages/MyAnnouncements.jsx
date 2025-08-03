@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Modal, Form, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import MediaGallery from '../components/MediaGallery.jsx';
 
 const MyAnnouncements = () => {
@@ -27,7 +28,7 @@ const MyAnnouncements = () => {
                     return;
                 }
 
-                const response = await fetch('http://127.0.0.1:8000/api/v1/my-announcements', {
+                const response = await fetch(createApiUrl('/my-announcements'), {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Accept': 'application/json'
@@ -75,7 +76,7 @@ const MyAnnouncements = () => {
                 return;
             }
 
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementToDelete.id}`, {
+            const response = await fetch(createApiUrl(`/announcements/${announcementToDelete.id}`), {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -118,7 +119,7 @@ const MyAnnouncements = () => {
                 return;
             }
 
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}/status`, {
+            const response = await fetch(createApiUrl(`/announcements/${announcementId}/status`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

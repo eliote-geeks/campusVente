@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, InputGroup, Badge, Modal, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import Avatar from '../components/Avatar.jsx';
 
 const Students = () => {
@@ -23,7 +24,7 @@ const Students = () => {
     const fetchStudents = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://127.0.0.1:8000/api/v1/users?is_student=true');
+            const response = await fetch(createApiUrl('/users?is_student=true'));
             const data = await response.json();
             
             if (data.success) {
@@ -64,7 +65,7 @@ const Students = () => {
     // Fetch featured students (recommended)
     const fetchFeaturedStudents = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/users/recommended?limit=6');
+            const response = await fetch(createApiUrl('/users/recommended?limit=6'));
             const data = await response.json();
             
             if (data.success) {
@@ -140,7 +141,7 @@ const Students = () => {
 
     const submitRating = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${studentToRate.id}/rate`, {
+            const response = await fetch(createApiUrl(`/users/${studentToRate.id}/rate`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

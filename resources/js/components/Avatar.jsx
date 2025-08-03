@@ -1,4 +1,5 @@
 import React from 'react';
+import { createStorageUrl } from '../config/api';
 
 const Avatar = ({ 
     src, 
@@ -53,7 +54,7 @@ const Avatar = ({
         
         // Si c'est un chemin relatif, construire l'URL complète
         if (imagePath.startsWith('avatars/')) {
-            return `http://127.0.0.1:8000/storage/${imagePath}`;
+            return createStorageUrl(imagePath);
         }
         
         return imagePath;

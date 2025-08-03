@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Modal, Button, Alert, ProgressBar } from 'react-bootstrap';
+import { createApiUrl } from '../config/api';
 import Avatar from './Avatar.jsx';
 
 const ProfileImageUpload = ({ 
@@ -72,7 +73,7 @@ const ProfileImageUpload = ({
                 });
             }, 100);
 
-            const response = await fetch('http://127.0.0.1:8000/api/v1/profile/avatar', {
+            const response = await fetch(createApiUrl('/profile/avatar'), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -125,7 +126,7 @@ const ProfileImageUpload = ({
     const handleRemoveImage = async () => {
         setUploading(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/profile/avatar', {
+            const response = await fetch(createApiUrl('/profile/avatar'), {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,

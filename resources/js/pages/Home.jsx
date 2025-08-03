@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Button, Form, Badge, Spinner, InputGroup } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import MediaGallery from '../components/MediaGallery.jsx';
 
 const Home = () => {
@@ -21,7 +22,7 @@ const Home = () => {
     // Enregistrer une vue
     const recordView = async (announcementId) => {
         try {
-            await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}/view`, {
+            await fetch(createApiUrl(`/announcements/${announcementId}/view`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -38,7 +39,7 @@ const Home = () => {
             if (page === 1) setLoading(true);
             else setLoadingMore(true);
 
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements?page=${page}&per_page=10&with_interactions=true`);
+            const response = await fetch(createApiUrl(`/announcements?page=${page}&per_page=10&with_interactions=true`));
             const data = await response.json();
             
             if (data.success) {
@@ -185,7 +186,7 @@ const Home = () => {
 
     const toggleLike = async (id) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${id}/like`, {
+            const response = await fetch(createApiUrl(`/announcements/${id}/like`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

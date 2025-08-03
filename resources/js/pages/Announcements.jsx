@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, InputGroup, Badge, Modal } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import MediaGallery from '../components/MediaGallery.jsx';
 
 const Announcements = () => {
@@ -20,7 +21,7 @@ const Announcements = () => {
     const fetchAnnouncements = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements?with_interactions=true');
+            const response = await fetch(createApiUrl('/announcements?with_interactions=true'));
             const data = await response.json();
             
             if (data.success) {
@@ -127,7 +128,7 @@ const Announcements = () => {
 
     const toggleLike = async (id) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${id}/like`, {
+            const response = await fetch(createApiUrl(`/announcements/${id}/like`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ const Announcements = () => {
 
     const recordView = async (announcementId) => {
         try {
-            await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}/view`, {
+            await fetch(createApiUrl(`/announcements/${announcementId}/view`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

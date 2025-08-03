@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, InputGroup, Spinner, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 
 const DashboardMeetings = () => {
     const { user } = useAuth();
@@ -18,7 +19,7 @@ const DashboardMeetings = () => {
     // Charger les données depuis l'API
     const fetchMeetings = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings');
+            const response = await fetch(createApiUrl('/meetings'));
             const data = await response.json();
             if (data.success) {
                 setMeetings(data.data);
@@ -33,7 +34,7 @@ const DashboardMeetings = () => {
     
     const fetchCategories = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/categories');
+            const response = await fetch(createApiUrl('/categories'));
             const data = await response.json();
             if (data.success) {
                 setCategories(data.data.filter(cat => cat.is_active));
@@ -142,7 +143,7 @@ const DashboardMeetings = () => {
     const handleDeleteMeeting = async (meetingId) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cette rencontre ?')) {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/meetings/${meetingId}`, {
+                const response = await fetch(createApiUrl(`/meetings/${meetingId}`), {
                     method: 'DELETE',
                     headers: {
                         'Accept': 'application/json',

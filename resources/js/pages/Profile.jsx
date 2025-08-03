@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, Badge, Alert, Tabs, Tab } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { notificationsAPI } from '../services/api.js';
+import { createApiUrl } from '../config/api';
 import Avatar from '../components/Avatar.jsx';
 import ProfileImageUpload from '../components/ProfileImageUpload.jsx';
 import MediaGallery from '../components/MediaGallery.jsx';
@@ -27,7 +28,7 @@ const Profile = () => {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}`, {
+                const response = await fetch(createApiUrl(`/users/${user.id}`), {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Accept': 'application/json'
@@ -56,7 +57,7 @@ const Profile = () => {
     useEffect(() => {
         const fetchRatings = async () => {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}/ratings`, {
+                const response = await fetch(createApiUrl(`/users/${user.id}/ratings`), {
                     headers: {
                         'Accept': 'application/json'
                     }
@@ -86,7 +87,7 @@ const Profile = () => {
                     return;
                 }
 
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/my-announcements`, {
+                const response = await fetch(createApiUrl('/my-announcements'), {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Accept': 'application/json'
@@ -130,7 +131,7 @@ const Profile = () => {
 
         const fetchNotificationStats = async () => {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/notifications/stats`, {
+                const response = await fetch(createApiUrl('/notifications/stats'), {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Accept': 'application/json'
@@ -172,7 +173,7 @@ const Profile = () => {
                     return;
                 }
             }
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}`, {
+            const response = await fetch(createApiUrl(`/users/${user.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -246,7 +247,7 @@ const Profile = () => {
                 formData.append('photo', file);
                 
                 // Upload vers le serveur
-                const response = await fetch('http://127.0.0.1:8000/api/v1/upload-dating-photo', {
+                const response = await fetch(createApiUrl('/upload-dating-photo'), {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,

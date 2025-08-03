@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, Alert, Spinner, Badge, ProgressBar, Tooltip, OverlayTrigger, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 import MediaUpload from '../components/MediaUpload.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 import './CreateAnnouncement.css';
@@ -112,7 +113,7 @@ const CreateAnnouncement = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/v1/categories');
+                const response = await fetch(createApiUrl('/categories'));
                 const data = await response.json();
                 if (data.success) {
                     setCategories(data.data.filter(cat => cat.is_active));
@@ -268,7 +269,7 @@ const CreateAnnouncement = () => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements-create-with-files', {
+            const response = await fetch(createApiUrl('/announcements-create-with-files'), {
                 method: 'POST',
                 headers: headers,
                 body: formDataToSend
@@ -334,7 +335,7 @@ const CreateAnnouncement = () => {
 
     const sendNotificationToAllUsers = async () => {
         try {
-            await fetch('http://127.0.0.1:8000/api/v1/notifications/broadcast', {
+            await fetch(createApiUrl('/notifications/broadcast'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

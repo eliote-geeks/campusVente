@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, Alert, Badge } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 
 const EditAnnouncement = () => {
     const { id } = useParams();
@@ -29,7 +30,7 @@ const EditAnnouncement = () => {
         const fetchAnnouncement = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${id}`, {
+                const response = await fetch(createApiUrl(`/announcements/${id}`), {
                     headers: {
                         'Accept': 'application/json'
                     }
@@ -76,7 +77,7 @@ const EditAnnouncement = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/v1/categories', {
+                const response = await fetch(createApiUrl('/categories'), {
                     headers: { 'Accept': 'application/json' }
                 });
                 const data = await response.json();
@@ -113,7 +114,7 @@ const EditAnnouncement = () => {
                 user_id: user.id
             };
 
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${id}/update-with-files`, {
+            const response = await fetch(createApiUrl(`/announcements/${id}/update-with-files`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ const EditAnnouncement = () => {
 
     const handleStatusChange = async (newStatus) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${id}/status`, {
+            const response = await fetch(createApiUrl(`/announcements/${id}/status`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import { Navbar, Nav, Container, Button, Badge, Dropdown } from 'react-bootstrap
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { notificationsAPI } from '../services/api.js';
+import { createApiUrl } from '../config/api';
 import Avatar from './Avatar.jsx';
 
 const Navigation = () => {
@@ -43,7 +44,7 @@ const Navigation = () => {
         const fetchUserProfile = async () => {
             if (isAuthenticated && user?.id) {
                 try {
-                    const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${user.id}`, {
+                    const response = await fetch(createApiUrl(`/users/${user.id}`), {
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('token')}`,
                             'Accept': 'application/json'

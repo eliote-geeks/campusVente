@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, InputGroup, Nav, Alert, Spinner, Pagination } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { createApiUrl } from '../config/api';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -155,7 +156,7 @@ const Dashboard = () => {
     // Fonctions API
     const fetchCategories = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/categories');
+            const response = await fetch(createApiUrl('/categories'));
             const data = await response.json();
             if (data.success) {
                 setCategories(data.data);
@@ -167,7 +168,7 @@ const Dashboard = () => {
 
     const fetchUniversities = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/universities');
+            const response = await fetch(createApiUrl('/universities'));
             const data = await response.json();
             if (data.success) {
                 setUniversities(data.data);
@@ -179,7 +180,7 @@ const Dashboard = () => {
 
     const fetchAnnouncements = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements');
+            const response = await fetch(createApiUrl('/announcements'));
             const data = await response.json();
             if (data.success) {
                 setAnnouncements(data.data);
@@ -191,7 +192,7 @@ const Dashboard = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/users');
+            const response = await fetch(createApiUrl('/users'));
             const data = await response.json();
             if (data.success) {
                 setUsers(data.data);
@@ -203,7 +204,7 @@ const Dashboard = () => {
 
     const fetchStats = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/dashboard/overview');
+            const response = await fetch(createApiUrl('/dashboard/overview'));
             const data = await response.json();
             if (data.success) {
                 setStats(data.data);
@@ -217,7 +218,7 @@ const Dashboard = () => {
 
     const fetchMeetings = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings');
+            const response = await fetch(createApiUrl('/meetings'));
             const data = await response.json();
             if (data.success) {
                 setMeetings(data.data);
@@ -229,7 +230,7 @@ const Dashboard = () => {
 
     const fetchRecentActivity = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/dashboard/recent-activity');
+            const response = await fetch(createApiUrl('/dashboard/recent-activity'));
             const data = await response.json();
             if (data.success) {
                 setRecentActivity(data.data);
@@ -243,7 +244,7 @@ const Dashboard = () => {
 
     const fetchPayments = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/payments/user');
+            const response = await fetch(createApiUrl('/payments/user'));
             const data = await response.json();
             if (data.success) {
                 setPayments(data.data);
@@ -257,7 +258,7 @@ const Dashboard = () => {
 
     const fetchPaymentStats = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/payments/stats');
+            const response = await fetch(createApiUrl('/payments/stats'));
             const data = await response.json();
             if (data.success) {
                 setPaymentStats(data.data);
@@ -320,7 +321,7 @@ const Dashboard = () => {
 
     const handleCreateCategory = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/categories', {
+            const response = await fetch('categories', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -344,7 +345,7 @@ const Dashboard = () => {
 
     const handleUpdateCategory = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/categories/${selectedCategory.id}`, {
+            const response = await fetch(createApiUrl(`/categories/${selectedCategory.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -370,7 +371,7 @@ const Dashboard = () => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/categories/${categoryId}`, {
+            const response = await fetch(createApiUrl(`/categories/${categoryId}`), {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json'
@@ -390,7 +391,7 @@ const Dashboard = () => {
 
     const handleToggleCategoryStatus = async (categoryId) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/categories/${categoryId}/toggle-status`, {
+            const response = await fetch(`categories/${categoryId}/toggle-status`, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json'
@@ -439,7 +440,7 @@ const Dashboard = () => {
 
     const handleCreateUser = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/users', {
+            const response = await fetch('users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -480,7 +481,7 @@ const Dashboard = () => {
 
     const handleUpdateUser = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${selectedUser.id}`, {
+            const response = await fetch(createApiUrl(`/users/${selectedUser.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -523,7 +524,7 @@ const Dashboard = () => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${userId}`, {
+            const response = await fetch(createApiUrl(`/users/${userId}`), {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json'
@@ -593,7 +594,7 @@ const Dashboard = () => {
 
     const handleCreateAnnouncement = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/announcements-create', {
+            const response = await fetch(createApiUrl('/announcements-create'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -636,7 +637,7 @@ const Dashboard = () => {
 
     const handleUpdateAnnouncement = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${selectedAnnouncement.id}`, {
+            const response = await fetch(createApiUrl(`/announcements/${selectedAnnouncement.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -681,7 +682,7 @@ const Dashboard = () => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ?')) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}`, {
+            const response = await fetch(createApiUrl(`/announcements/${announcementId}`), {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json'
@@ -720,7 +721,7 @@ const Dashboard = () => {
 
     const handleUpdateAnnouncementStatus = async (announcementId, newStatus) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/announcements/${announcementId}/status`, {
+            const response = await fetch(`announcements/${announcementId}/status`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -800,7 +801,7 @@ const Dashboard = () => {
 
     const handleCreateUniversity = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/universities', {
+            const response = await fetch('universities', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -843,7 +844,7 @@ const Dashboard = () => {
 
     const handleUpdateUniversity = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/universities/${selectedUniversity.id}`, {
+            const response = await fetch(createApiUrl(`/universities/${selectedUniversity.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -888,7 +889,7 @@ const Dashboard = () => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette université ?')) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/universities/${universityId}`, {
+            const response = await fetch(createApiUrl(`/universities/${universityId}`), {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json'
@@ -927,7 +928,7 @@ const Dashboard = () => {
 
     const handleToggleUniversityStatus = async (universityId) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/universities/${universityId}/toggle-status`, {
+            const response = await fetch(`universities/${universityId}/toggle-status`, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json'
@@ -1842,7 +1843,7 @@ const Dashboard = () => {
 
     const handleCreateMeeting = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/meetings', {
+            const response = await fetch('meetings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1866,7 +1867,7 @@ const Dashboard = () => {
 
     const handleUpdateMeeting = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/meetings/${selectedMeeting.id}`, {
+            const response = await fetch(createApiUrl(`/meetings/${selectedMeeting.id}`), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1892,7 +1893,7 @@ const Dashboard = () => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette rencontre ?')) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/v1/meetings/${meetingId}`, {
+            const response = await fetch(createApiUrl(`/meetings/${meetingId}`), {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json'
