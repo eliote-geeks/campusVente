@@ -35,14 +35,6 @@ Route::prefix('v1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-    // Universités
-    Route::get('/universities', function () {
-        $universities = \App\Models\University::active()->get();
-        return response()->json([
-            'success' => true,
-            'data' => $universities
-        ]);
-    });
 
     // Villes du Cameroun
     Route::get('/cities', function () {

@@ -321,7 +321,7 @@ const Dashboard = () => {
 
     const handleCreateCategory = async () => {
         try {
-            const response = await fetch('categories', {
+            const response = await fetch(createApiUrl('/categories'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -391,7 +391,7 @@ const Dashboard = () => {
 
     const handleToggleCategoryStatus = async (categoryId) => {
         try {
-            const response = await fetch(`categories/${categoryId}/toggle-status`, {
+            const response = await fetch(createApiUrl(`/categories/${categoryId}/toggle-status`), {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json'
@@ -801,7 +801,7 @@ const Dashboard = () => {
 
     const handleCreateUniversity = async () => {
         try {
-            const response = await fetch('universities', {
+            const response = await fetch(createApiUrl('/universities'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -928,7 +928,7 @@ const Dashboard = () => {
 
     const handleToggleUniversityStatus = async (universityId) => {
         try {
-            const response = await fetch(`universities/${universityId}/toggle-status`, {
+            const response = await fetch(createApiUrl(`/universities/${universityId}/toggle-status`), {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json'
