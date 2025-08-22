@@ -189,6 +189,20 @@ Route::get('/clear-cache', function () {
     }
 });
 
+// Route pour servir les images depuis storage sans lien symbolique
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    
+    $mimeType = mime_content_type($filePath);
+    return response()->file($filePath, [
+        'Content-Type' => $mimeType,
+    ]);
+})->where('path', '.*');
+
 // Route pour servir l'application React
 Route::get('/{path?}', function () {
     return view('app');
