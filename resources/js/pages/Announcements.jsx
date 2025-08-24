@@ -48,7 +48,7 @@ const Announcements = () => {
                         rating: parseFloat(announcement.user?.rating) || 0,
                         responseTime: '2h' // Default response time
                     },
-                    images: announcement.images || [],
+                    images: announcement.images_base64 || [],
                     media: announcement.media || [],
                     createdAt: announcement.created_at,
                     location: announcement.location || 'Non spécifié',

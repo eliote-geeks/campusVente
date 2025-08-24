@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner, Badge, Tabs, Tab } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import CampusLoveMediaUpload from '../components/CampusLoveMediaUpload.jsx';
+import CampusLoveMediaUploadBase64 from '../components/CampusLoveMediaUploadBase64.jsx';
 import { User, Heart, Camera, Settings, BarChart3 } from 'lucide-react';
 
 const CampusLoveProfile = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
+    
+    // Debug pour voir les données utilisateur - DÉSACTIVÉ
+    // console.log('Utilisateur dans CampusLoveProfile:', user);
+    // console.log('Photos dating de l\'utilisateur:', user?.dating_photos_base64);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -13,6 +17,7 @@ const CampusLoveProfile = () => {
     const [profile, setProfile] = useState(null);
     const [stats, setStats] = useState(null);
     const [activeTab, setActiveTab] = useState('basic');
+    const [userPhotos, setUserPhotos] = useState([]);
 
     const [formData, setFormData] = useState({
         display_name: '',
@@ -69,7 +74,28 @@ const CampusLoveProfile = () => {
     useEffect(() => {
         loadProfile();
         loadStats();
+        loadUserPhotos();
     }, []);
+
+    const loadUserPhotos = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/v1/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                // console.log('Données utilisateur récupérées:', data.data);
+                setUserPhotos(data.data.dating_photos_base64 || []);
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des photos:', error);
+        }
+    };
 
     const loadProfile = async () => {
         try {
@@ -168,9 +194,15 @@ const CampusLoveProfile = () => {
         }
     };
 
-    const handlePhotosChange = (updatedProfile) => {
-        setProfile(updatedProfile);
-        loadStats(); // Recharger les stats
+    const handlePhotosChange = (updatedPhotos) => {
+        // console.log('Photos mises à jour:', updatedPhotos);
+        // Mettre à jour l'état local
+        setUserPhotos(updatedPhotos);
+        
+        // Mettre à jour les photos dans le contexte utilisateur si disponible
+        if (user && updateUser) {
+            updateUser({ ...user, dating_photos_base64: updatedPhotos });
+        }
     };
 
     if (loading) {
@@ -393,11 +425,10 @@ const CampusLoveProfile = () => {
                         </Tab>
 
                         <Tab eventKey="photos" title={<><Camera size={16} className="me-1" /> Photos</>}>
-                            <CampusLoveMediaUpload
-                                photos={profile?.photos || []}
+                            <CampusLoveMediaUploadBase64
+                                photos={userPhotos}
                                 onPhotosChange={handlePhotosChange}
                                 maxPhotos={6}
-                                profile={profile}
                             />
                         </Tab>
 

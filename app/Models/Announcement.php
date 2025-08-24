@@ -18,6 +18,7 @@ class Announcement extends Model
         'location',
         'phone',
         'images',
+        'images_base64',
         'media',
         'user_id',
         'category_id',
@@ -25,17 +26,20 @@ class Announcement extends Model
         'is_promotional',
         'promotional_fee',
         'promoted_at',
-        'views'
+        'views',
+        'expires_at'
     ];
 
     protected $casts = [
         'images' => 'array',
+        'images_base64' => 'array',
         'media' => 'array',
         'is_urgent' => 'boolean',
         'is_promotional' => 'boolean',
         'price' => 'decimal:2',
         'promotional_fee' => 'decimal:2',
-        'promoted_at' => 'datetime'
+        'promoted_at' => 'datetime',
+        'expires_at' => 'datetime'
     ];
 
     public function user()
@@ -117,6 +121,22 @@ class Announcement extends Model
         return $query->where(function ($q) use ($search) {
             $q->where('title', 'like', "%{$search}%")
               ->orWhere('description', 'like', "%{$search}%");
+        });
+    }
+
+    public function scopeNotExpired($query)
+    {
+        return $query->where('expires_at', '>', now());
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($announcement) {
+            if (!$announcement->expires_at) {
+                $announcement->expires_at = now()->addDays(7);
+            }
         });
     }
 }

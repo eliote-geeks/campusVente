@@ -63,10 +63,10 @@ const Home = () => {
                     description: announcement.description,
                     price: parseFloat(announcement.price),
                     category: announcement.category?.name || 'Non classifié',
-                    image: announcement.images && announcement.images.length > 0 
-                        ? announcement.images[0] 
+                    image: announcement.images_base64 && announcement.images_base64.length > 0 
+                        ? announcement.images_base64[0] 
                         : null,
-                    images: announcement.images || [],
+                    images: announcement.images_base64 || [],
                     media: announcement.media || [],
                     createdAt: announcement.created_at,
                     type: announcement.type,

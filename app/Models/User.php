@@ -31,6 +31,7 @@ class User extends Authenticatable
         'bio_dating',
         'interests',
         'dating_photos',
+        'dating_photos_base64',
         'whatsapp_number',
         'dating_active',
         'max_distance',
@@ -43,6 +44,7 @@ class User extends Authenticatable
         'is_student',
         'is_admin',
         'avatar',
+        'avatar_base64',
         'campus_love_premium',
         'campus_love_premium_activated_at',
     ];
@@ -76,6 +78,7 @@ class User extends Authenticatable
             'dating_active' => 'boolean',
             'interests' => 'array',
             'dating_photos' => 'array',
+            'dating_photos_base64' => 'array',
             'dating_preferences' => 'array',
             'campus_love_premium' => 'boolean',
             'campus_love_premium_activated_at' => 'datetime',
@@ -238,6 +241,12 @@ class User extends Authenticatable
     // Accessor pour avatar avec valeur par défaut
     public function getAvatarAttribute($value)
     {
+        // Priorité à l'avatar base64
+        if (!empty($this->attributes['avatar_base64'])) {
+            return $this->attributes['avatar_base64'];
+        }
+        
+        // Sinon, utiliser l'ancien système uniquement si pas de base64
         if ($value) {
             return $value;
         }

@@ -21,12 +21,76 @@ class AnnouncementController extends Controller
         // Authentification requise pour créer/modifier des annonces
         $this->middleware('auth:sanctum', ['except' => ['index', 'show', 'updateWithFiles']]);
     }
+
+    /**
+     * Traite les images en base64 et les optimise
+     */
+    private function processBase64Images($images)
+    {
+        $processedImages = [];
+        
+        foreach ($images as $imageData) {
+            if (is_string($imageData)) {
+                // Vérifier si c'est une image base64
+                if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $matches)) {
+                    $extension = $matches[1];
+                    $base64Data = substr($imageData, strpos($imageData, ',') + 1);
+                    
+                    // Décoder l'image
+                    $decodedData = base64_decode($base64Data);
+                    
+                    if ($decodedData !== false) {
+                        // Vérifier la taille (max 2MB par image)
+                        if (strlen($decodedData) > 2 * 1024 * 1024) {
+                            continue; // Ignorer les images trop grandes
+                        }
+                        
+                        // Réencoder avec compression
+                        $image = imagecreatefromstring($decodedData);
+                        if ($image !== false) {
+                            ob_start();
+                            
+                            // Redimensionner si nécessaire (max 800x600)
+                            $width = imagesx($image);
+                            $height = imagesy($image);
+                            
+                            if ($width > 800 || $height > 600) {
+                                $ratio = min(800/$width, 600/$height);
+                                $newWidth = (int)($width * $ratio);
+                                $newHeight = (int)($height * $ratio);
+                                
+                                $resized = imagecreatetruecolor($newWidth, $newHeight);
+                                imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                                
+                                imagejpeg($resized, null, 85); // Compression 85%
+                                imagedestroy($resized);
+                            } else {
+                                imagejpeg($image, null, 85);
+                            }
+                            
+                            $optimizedData = ob_get_contents();
+                            ob_end_clean();
+                            
+                            $optimizedBase64 = 'data:image/jpeg;base64,' . base64_encode($optimizedData);
+                            $processedImages[] = $optimizedBase64;
+                            
+                            imagedestroy($image);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $processedImages;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $query = Announcement::with(['user', 'category']);
+        $query = Announcement::with(['user', 'category'])
+            ->notExpired(); // Exclure les annonces expirées
         
         // Inclure les compteurs de likes et vues si demandé
         if ($request->get('with_interactions')) {
@@ -227,10 +291,18 @@ class AnnouncementController extends Controller
             'payment_id' => 'nullable|exists:payments,id',
             'payment_ref' => 'nullable|string',
             'media_files' => 'nullable|array',
-            'media_files.*' => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:10240'
+            'media_files.*' => 'file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:10240',
+            'images_base64' => 'nullable|array',
+            'images_base64.*' => 'string'
         ]);
 
-        // Traitement des fichiers uploadés
+        // Traitement des images base64
+        $imagesBase64 = [];
+        if ($request->has('images_base64') && is_array($request->images_base64)) {
+            $imagesBase64 = $this->processBase64Images($request->images_base64);
+        }
+
+        // Traitement des fichiers uploadés (legacy)
         $images = [];
         $media = [];
         
@@ -336,7 +408,8 @@ class AnnouncementController extends Controller
             'is_promotional' => $isPromotional,
             'promotional_fee' => $promotionalFee,
             'promoted_at' => $promotedAt,
-            'images' => $images,
+            'images' => $images, // Legacy pour compatibilité
+            'images_base64' => $imagesBase64, // Nouvelles images en base64
             'media' => $media,
             'status' => 'active'
         ]);

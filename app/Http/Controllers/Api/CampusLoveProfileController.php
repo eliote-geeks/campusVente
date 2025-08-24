@@ -22,6 +22,146 @@ class CampusLoveProfileController extends Controller
     }
 
     /**
+     * Traite et optimise une image base64 pour Campus Love
+     */
+    private function processBase64ImageCampusLove($base64Data, $maxWidth = 1080, $quality = 85)
+    {
+        // Vérifier le format base64
+        if (!preg_match('/^data:image\/(\w+);base64,/', $base64Data, $matches)) {
+            throw new \InvalidArgumentException('Format base64 invalide');
+        }
+
+        $extension = $matches[1];
+        $data = substr($base64Data, strpos($base64Data, ',') + 1);
+        $decodedData = base64_decode($data);
+
+        if ($decodedData === false) {
+            throw new \InvalidArgumentException('Impossible de décoder l\'image base64');
+        }
+
+        // Vérifier la taille (max 10MB)
+        if (strlen($decodedData) > 10 * 1024 * 1024) {
+            throw new \InvalidArgumentException('Image trop volumineuse (max 10MB)');
+        }
+
+        // Créer l'image à partir des données
+        $image = imagecreatefromstring($decodedData);
+        if ($image === false) {
+            throw new \InvalidArgumentException('Format d\'image invalide');
+        }
+
+        // Obtenir les dimensions
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        // Redimensionner si nécessaire
+        if ($width > $maxWidth) {
+            $ratio = $maxWidth / $width;
+            $newWidth = $maxWidth;
+            $newHeight = (int)($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            
+            ob_start();
+            imagejpeg($resized, null, $quality);
+            $optimizedData = ob_get_contents();
+            ob_end_clean();
+            
+            imagedestroy($resized);
+        } else {
+            ob_start();
+            imagejpeg($image, null, $quality);
+            $optimizedData = ob_get_contents();
+            ob_end_clean();
+        }
+
+        imagedestroy($image);
+        
+        return 'data:image/jpeg;base64,' . base64_encode($optimizedData);
+    }
+
+    /**
+     * Upload photo en base64 pour Campus Love
+     */
+    public function uploadPhotoBase64(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'photo_base64' => 'required|string',
+                'is_profile_photo' => 'sometimes|boolean',
+                'description' => 'sometimes|string|max:200',
+                'location' => 'sometimes|string|max:100',
+                'tags' => 'sometimes|array|max:5',
+                'tags.*' => 'string|max:30'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Données invalides',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Vérifier que la colonne dating_photos_base64 existe
+            if (!\Schema::hasColumn('users', 'dating_photos_base64')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Base de données non mise à jour. Contactez l\'administrateur.',
+                    'debug' => 'Colonne dating_photos_base64 manquante'
+                ], 500);
+            }
+
+            $user = Auth::user();
+            
+            // Traiter et optimiser l'image base64
+            $optimizedImage = $this->processBase64ImageCampusLove($request->photo_base64);
+            
+            // Récupérer les photos actuelles
+            $currentPhotos = $user->dating_photos_base64 ?? [];
+            
+            // Ajouter la nouvelle photo
+            $currentPhotos[] = [
+                'image' => $optimizedImage,
+                'description' => $request->description ?? null,
+                'location' => $request->location ?? null,
+                'tags' => $request->tags ?? [],
+                'is_profile_photo' => $request->boolean('is_profile_photo'),
+                'uploaded_at' => now()->toISOString()
+            ];
+            
+            // Mettre à jour l'utilisateur
+            $user->update([
+                'dating_photos_base64' => $currentPhotos,
+                'dating_active' => true // Activer le dating si pas déjà fait
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Photo ajoutée avec succès',
+                'data' => [
+                    'photo_count' => count($currentPhotos),
+                    'latest_photo' => end($currentPhotos)
+                ]
+            ]);
+
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Erreur upload photo Campus Love: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'upload de la photo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Obtenir le profil CampusLove de l'utilisateur connecté
      */
     public function getMyProfile(Request $request)

@@ -131,6 +131,8 @@ class CampusLoveController extends Controller
 
             // Formater les données pour le frontend
             $formattedProfiles = $profiles->map(function ($profile) {
+                $photosBase64 = $profile->dating_photos_base64 ?? [];
+                
                 return [
                     'id' => $profile->id,
                     'name' => $profile->name,
@@ -140,8 +142,9 @@ class CampusLoveController extends Controller
                     'field' => $profile->field,
                     'bio' => $profile->bio_dating ?? $profile->bio,
                     'interests' => $profile->interests ?? [],
-                    'photos' => $profile->dating_photos ?? [],
-                    'dating_photos' => $profile->dating_photos ?? [],
+                    'photos' => $photosBase64, // Utiliser les photos base64
+                    'dating_photos_base64' => $photosBase64,
+                    'profile_photo' => !empty($photosBase64) ? $photosBase64[0]['image'] ?? null : null, // Première photo comme photo de profil
                     'location' => $profile->location,
                     'distance' => rand(1, 50), // TODO: Calculer la vraie distance
                 ];

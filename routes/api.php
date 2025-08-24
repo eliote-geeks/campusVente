@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\CampusLoveController;
 use App\Http\Controllers\Api\CampusLoveProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -250,8 +251,27 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/users/{user}/can-rate', [UserRatingController::class, 'canRateUser']);
     Route::put('/ratings/{rating}', [UserRatingController::class, 'updateRating']);
     
+    // Route pour récupérer l'utilisateur connecté
+    Route::get('/me', function () {
+        return response()->json([
+            'success' => true,
+            'data' => Auth::user()
+        ]);
+    });
+    
+    // Mise à jour de l'utilisateur connecté
+    Route::put('/me', function (Request $request) {
+        $user = Auth::user();
+        $user->update($request->all());
+        return response()->json([
+            'success' => true,
+            'data' => $user->fresh()
+        ]);
+    });
+
     // Gestion des avatars (nécessite authentification)
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
+    Route::post('/profile/avatar-base64', [ProfileController::class, 'uploadAvatarBase64']);
     Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar']);
     Route::get('/profile/avatar/{userId?}', [ProfileController::class, 'getAvatar']);
     
@@ -267,6 +287,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         
         // Gestion des photos de profil
         Route::post('/photos/upload', [CampusLoveProfileController::class, 'uploadPhoto']);
+        Route::post('/photos/upload-base64', [CampusLoveProfileController::class, 'uploadPhotoBase64']);
         Route::post('/photos/upload-multiple', [CampusLoveProfileController::class, 'uploadMultiplePhotos']);
         Route::delete('/photos', [CampusLoveProfileController::class, 'deletePhoto']);
         Route::put('/photos/profile', [CampusLoveProfileController::class, 'setProfilePhoto']);

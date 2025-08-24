@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { createApiUrl } from '../config/api';
 import MediaUpload from '../components/MediaUpload.jsx';
+import MediaUploadBase64 from '../components/MediaUploadBase64.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 import './CreateAnnouncement.css';
 
@@ -30,7 +31,8 @@ const CreateAnnouncement = () => {
         category_id: '',
         is_urgent: false,
         is_promotional: false,
-        images: [],
+        images: [], // Legacy
+        images_base64: [], // Nouvelles images en base64
         media: []
     });
 
@@ -228,42 +230,66 @@ const CreateAnnouncement = () => {
         setSuccess('');
 
         try {
-            // Préparer FormData pour l'upload de fichiers
-            const formDataToSend = new FormData();
-            
-            // Ajouter les champs de base
-            formDataToSend.append('title', announcementData.title);
-            formDataToSend.append('description', announcementData.description);
-            formDataToSend.append('price', announcementData.price);
-            formDataToSend.append('type', announcementData.type);
-            formDataToSend.append('location', announcementData.location);
-            formDataToSend.append('phone', announcementData.phone);
-            formDataToSend.append('category_id', announcementData.category_id);
-            formDataToSend.append('is_urgent', announcementData.is_urgent ? '1' : '0');
-            formDataToSend.append('is_promotional', announcementData.is_promotional ? '1' : '0');
-            
-            // Ajouter les données de paiement si disponibles
-            if (announcementData.payment_id) {
-                formDataToSend.append('payment_id', announcementData.payment_id);
-            }
-            if (announcementData.payment_ref) {
-                formDataToSend.append('payment_ref', announcementData.payment_ref);
-            }
-            
-            // Ajouter les fichiers médias
-            if (announcementData.media && announcementData.media.length > 0) {
-                announcementData.media.forEach((mediaItem, index) => {
-                    if (mediaItem.file) {
-                        formDataToSend.append('media_files[]', mediaItem.file);
-                    }
-                });
+            // Si on a des images base64, on utilise JSON, sinon FormData
+            let requestData;
+            let headers = {
+                'Accept': 'application/json'
+            };
+
+            if (announcementData.images_base64 && announcementData.images_base64.length > 0) {
+                // Utiliser JSON pour les images base64
+                requestData = {
+                    title: announcementData.title,
+                    description: announcementData.description,
+                    price: announcementData.price,
+                    type: announcementData.type,
+                    location: announcementData.location,
+                    phone: announcementData.phone,
+                    category_id: announcementData.category_id,
+                    is_urgent: announcementData.is_urgent,
+                    is_promotional: announcementData.is_promotional,
+                    images_base64: announcementData.images_base64.map(img => img.base64),
+                    payment_id: announcementData.payment_id || null,
+                    payment_ref: announcementData.payment_ref || null
+                };
+                
+                headers['Content-Type'] = 'application/json';
+                requestData = JSON.stringify(requestData);
+            } else {
+                // Préparer FormData pour l'upload de fichiers (legacy)
+                requestData = new FormData();
+                
+                // Ajouter les champs de base
+                requestData.append('title', announcementData.title);
+                requestData.append('description', announcementData.description);
+                requestData.append('price', announcementData.price);
+                requestData.append('type', announcementData.type);
+                requestData.append('location', announcementData.location);
+                requestData.append('phone', announcementData.phone);
+                requestData.append('category_id', announcementData.category_id);
+                requestData.append('is_urgent', announcementData.is_urgent ? '1' : '0');
+                requestData.append('is_promotional', announcementData.is_promotional ? '1' : '0');
+                
+                // Ajouter les données de paiement si disponibles
+                if (announcementData.payment_id) {
+                    requestData.append('payment_id', announcementData.payment_id);
+                }
+                if (announcementData.payment_ref) {
+                    requestData.append('payment_ref', announcementData.payment_ref);
+                }
+                
+                // Ajouter les fichiers médias
+                if (announcementData.media && announcementData.media.length > 0) {
+                    announcementData.media.forEach((mediaItem, index) => {
+                        if (mediaItem.file) {
+                            requestData.append('media_files[]', mediaItem.file);
+                        }
+                    });
+                }
             }
 
             // Récupérer le token d'authentification
             const token = localStorage.getItem('token');
-            const headers = {
-                'Accept': 'application/json'
-            };
             
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
@@ -272,7 +298,7 @@ const CreateAnnouncement = () => {
             const response = await fetch(createApiUrl('/announcements-create-with-files'), {
                 method: 'POST',
                 headers: headers,
-                body: formDataToSend
+                body: requestData
             });
 
             const contentType = response.headers.get('content-type');
@@ -684,10 +710,10 @@ const CreateAnnouncement = () => {
                                     </Form.Group>
 
                                     {/* Upload de médias */}
-                                    <MediaUpload
-                                        media={formData.media}
-                                        onMediaChange={(newMedia) => setFormData(prev => ({ ...prev, media: newMedia }))}
-                                        maxFiles={8}
+                                    <MediaUploadBase64
+                                        images={formData.images_base64}
+                                        onImagesChange={(newImages) => setFormData(prev => ({ ...prev, images_base64: newImages }))}
+                                        maxFiles={5}
                                     />
 
                                     <Row>

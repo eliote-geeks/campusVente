@@ -193,7 +193,7 @@ const AppContent = () => {
                                 </PrivateRoute>
                             } 
                         />
-                        <Route 
+                        {/* <Route 
                             path="/campus-love" 
                             element={
                                 <PrivateRoute>
@@ -208,7 +208,7 @@ const AppContent = () => {
                                     <CampusLoveProfile />
                                 </PrivateRoute>
                             } 
-                        />
+                        /> */}
                         
                         {/* Route par défaut */}
                         <Route path="*" element={<Navigate to="/" />} />

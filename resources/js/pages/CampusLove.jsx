@@ -227,8 +227,10 @@ const CampusLove = () => {
                             {/* Photo principale */}
                             <div style={{ position: 'relative', height: '500px' }}>
                                 <img 
-                                    src={currentProfile.profile_photo || currentProfile.photos?.[0] || 'https://via.placeholder.com/400x600/ff6b6b/white?text=Pas+de+photo'}
-                                    alt={currentProfile.display_name || currentProfile.user?.name}
+                                    src={currentProfile.profile_photo || 
+                                         (currentProfile.photos?.[0]?.image || currentProfile.photos?.[0]) || 
+                                         'https://via.placeholder.com/400x600/ff6b6b/white?text=Pas+de+photo'}
+                                    alt={currentProfile.name}
                                     style={{
                                         width: '100%',
                                         height: '100%',
@@ -250,19 +252,19 @@ const CampusLove = () => {
                                     padding: '2rem 1.5rem 1.5rem'
                                 }}>
                                     <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem' }}>
-                                        {currentProfile.display_name || currentProfile.user?.name}
-                                        {currentProfile.birth_date && (
-                                            <span>, {new Date().getFullYear() - new Date(currentProfile.birth_date).getFullYear()}</span>
+                                        {currentProfile.name}
+                                        {currentProfile.age && (
+                                            <span>, {currentProfile.age}</span>
                                         )}
                                     </h3>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem' }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                             <MapPin size={14} />
-                                            {currentProfile.city || 'Localisation non spécifiée'}
+                                            {currentProfile.location || 'Localisation non spécifiée'}
                                         </span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                             <GraduationCap size={14} />
-                                            {currentProfile.field_of_study || 'Domaine non spécifié'}
+                                            {currentProfile.field || 'Domaine non spécifié'}
                                         </span>
                                     </div>
                                 </div>
@@ -273,7 +275,7 @@ const CampusLove = () => {
                                 <div style={{ marginBottom: '1.5rem' }}>
                                     <h5 style={{ color: '#ff6b6b', marginBottom: '0.5rem' }}>À propos</h5>
                                     <p style={{ color: '#666', lineHeight: '1.6', margin: 0 }}>
-                                        {currentProfile.bio || currentProfile.about_me || 'Aucune description disponible'}
+                                        {currentProfile.bio || 'Aucune description disponible'}
                                     </p>
                                 </div>
 
